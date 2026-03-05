@@ -1,0 +1,9 @@
+import { Router } from "express";
+import { getRoot } from "../controllers/healthController.js";
+
+const router = Router();
+
+router.get("/", getRoot);
+
+export default router;
+
