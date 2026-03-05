@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Auth API Test</title>
+</head>
+<body>
+  <h1>Auth API Test</h1>
+  <p>With the backend running (<code>npm run dev</code>), open <strong>http://localhost:5000/test-auth</strong> to test Register, Login, Me, and Logout.</p>
+  <p>Base URL: <input id="baseUrl" value="http://localhost:5000/api/v1" style="width: 300px" /></p>
+  <button onclick="testRegister()">1. Register</button>
+  <button onclick="testLogin()">2. Login</button>
+  <button onclick="testMe()">3. Me (protected)</button>
+  <button onclick="testLogout()">4. Logout</button>
+  <pre id="output"></pre>
+  <script>
+    const out = document.getElementById('output');
+    const base = () => document.getElementById('baseUrl').value;
+    const log = (msg) => { out.textContent += msg + '\n'; };
+
+    async function testRegister() {
+      log('--- Register ---');
+      try {
+        const r = await fetch(base() + '/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({
+            email: 'test@example.com',
+            password: 'test123',
+            name: 'Test User',
+            phoneNumber: '9812345678',
+            wardNumber: 1
+          })
+        });
+        const j = await r.json();
+        log(JSON.stringify(j, null, 2));
+      } catch (e) { log('Error: ' + e.message); }
+    }
+
+    async function testLogin() {
+      log('--- Login ---');
+      try {
+        const r = await fetch(base() + '/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ email: 'test@example.com', password: 'test123' })
+        });
+        const j = await r.json();
+        log(JSON.stringify(j, null, 2));
+      } catch (e) { log('Error: ' + e.message); }
+    }
+
+    async function testMe() {
+      log('--- Me (protected) ---');
+      try {
+        const r = await fetch(base() + '/auth/me', { credentials: 'include' });
+        const j = await r.json();
+        log(JSON.stringify(j, null, 2));
+      } catch (e) { log('Error: ' + e.message); }
+    }
+
+    async function testLogout() {
+      log('--- Logout ---');
+      try {
+        const r = await fetch(base() + '/auth/logout', { method: 'POST', credentials: 'include' });
+        const j = await r.json();
+        log(JSON.stringify(j, null, 2));
+      } catch (e) { log('Error: ' + e.message); }
+    }
+  </script>
+</body>
+</html>

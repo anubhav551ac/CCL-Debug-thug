@@ -155,6 +155,9 @@ CODE_OF_CONDUCT.md
 SECURITY.md
 CHANGELOG.md
 
+# backend uploads
+backend/uploads/
+
 # backend files
 node_modules/
 package-lock.json
