@@ -19,17 +19,96 @@ enum Role {
   WARD_OFFICER
 }
 
+enum WasteType {
+  ORGANIC
+  PLASTIC
+  METAL
+  PAPER
+  ELECTRONIC
+  MEDICAL
+  HAZARDOUS
+}
+
+
+enum WasteSize {
+  HANDFUL
+  BAGFUL
+  RICKSHAWFUL
+  TRUCKFUL
+}
+
+enum PinStatus {
+  PENDING_GOV    // Initial state (Green)
+  BOUNTY_OPEN    // After 7 days or manual escalation (Red)
+  CLAIMED        // A collector has committed to cleaning it
+  VERIFYING      // Cleaner uploaded proof, waiting for upvotes
+  RESOLVED       // Successfully cleaned and bounty paid
+}
+
 model User {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   email        String   @unique
   password     String
   name         String
   phoneNumber  String
-  wardNumber   Int
   location     Json?
   profilePic   String?
   role         Role     @default(CITIZEN)
   reputation   Int      @default(0)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  mockBalance    Int       @default(5000) // For the "Fake" wallet system
+  
+  reportsCreated WastePin[] @relation("Reporter")
+  pledges        Pledge[]
+
+  cleanupsDone CleanupProof[]
+}
+
+model WastePin {
+  id            String    @id @default(auto()) @map("_id") @db.ObjectId
+  latitude      Float
+  longitude     Float
+  municipality  String    // e.g. "Baluwa, Kathmandu"
+  wasteType     WasteType
+  wasteSize     WasteSize
+  description   String?
+  status        PinStatus @default(PENDING_GOV)
+  bountyPool    Int       @default(0)
+  
+  reporter      User      @relation("Reporter", fields: [reporterId], references: [id])
+  reporterId    String    @db.ObjectId
+  
+  pledges       Pledge[]
+  cleanupProof  CleanupProof? // One-to-one relationship with the resolution
+  
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+}
+
+model Pledge {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  amount     Int
+  user       User     @relation(fields: [userId], references: [id])
+  userId     String   @db.ObjectId
+  wastePin   WastePin @relation(fields: [pinId], references: [id])
+  pinId      String   @db.ObjectId
+  createdAt  DateTime @default(now())
+}
+
+model CleanupProof {
+  id           String   @id @default(auto()) @map("_id") @db.ObjectId
+  beforeImage  String   // URL of the original mess
+  afterImage   String   // URL of the cleaned site
+  description  String?
+  upvotes      Int      @default(0)
+  
+  cleaner      User     @relation(fields: [cleanerId], references: [id])
+  cleanerId    String   @db.ObjectId
+  
+  wastePin     WastePin @relation(fields: [pinId], references: [id])
+  pinId        String   @db.ObjectId @unique
+  
+  createdAt    DateTime @default(now())
 }

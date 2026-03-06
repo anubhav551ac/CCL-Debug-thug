@@ -1,6 +1,18 @@
-import { motion } from "motion/react"
-import { Leaf, User, Mail, Lock, Phone, MapPin, ArrowRight, Camera, UserPlus, Plus } from "lucide-react";
+import { useState } from "react";
+import { motion } from "motion/react";
+import { Leaf, User, Mail, Lock, Phone, MapPin, ArrowRight, Camera, UserPlus, Plus, AlertCircle, Loader2 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { useRegister } from "@/features/auth/useAuth";
+import kathmanduPalikas from "@/pages/Dashboard/helpers/data/kathmandu-palikas.json";
+
+// Extract unique municipalities from GeoJSON
+const uniqueMunicipalities = Array.from(
+    new Set(
+        (kathmanduPalikas as any).features.map(
+            (f: any) => `${f.properties.name}, ${f.properties.district}`
+        )
+    )
+).sort();
 
 const NavItem = ({ children, href = "#", onClick }: { children: React.ReactNode; href?: string; onClick?: () => void }) => (
     <a
@@ -18,8 +30,60 @@ const NavItem = ({ children, href = "#", onClick }: { children: React.ReactNode;
 );
 
 const RegisterPage = () => {
-
     const navigate = useNavigate();
+
+    const [form, setForm] = useState({
+        name: "",
+        email: "",
+        password: "",
+        confirmPassword: "",
+        phoneNumber: "",
+        municipality: "",
+        profilePic: "",
+    });
+    const [preview, setPreview] = useState<string | null>(null);
+
+    const { mutate: register, isPending, error } = useRegister();
+
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+        setForm((prev) => ({ ...prev, [e.target.name]: e.target.value }));
+    };
+
+    const [clientError, setClientError] = useState<string | null>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64String = reader.result as string;
+                setPreview(base64String);
+                setForm((prev) => ({ ...prev, profilePic: base64String }));
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        setClientError(null);
+
+        if (form.password !== form.confirmPassword) {
+            setClientError("Passwords do not match.");
+            return;
+        }
+
+        register({
+            name: form.name,
+            email: form.email,
+            password: form.password,
+            phoneNumber: form.phoneNumber,
+            municipality: form.municipality,
+            profilePic: form.profilePic,
+        });
+    };
+
+    const displayError = clientError ?? error?.message ?? null;
 
     return (
         <motion.div
@@ -60,13 +124,27 @@ const RegisterPage = () => {
                         <div className="p-8 sm:p-12">
                             <div className="flex flex-col items-center mb-10">
                                 <div className="relative group">
-                                    <div className="size-32 rounded-full border-4 border-slate-100 bg-slate-50 flex items-center justify-center overflow-hidden shadow-inner cursor-pointer hover:border-primary/30 transition-colors">
-                                        <UserPlus className="text-slate-300 text-5xl" size={48} />
-                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <input
+                                        type="file"
+                                        id="profilePic"
+                                        className="hidden"
+                                        accept="image/*"
+                                        onChange={handleFileChange}
+                                    />
+                                    <label
+                                        htmlFor="profilePic"
+                                        className="size-32 rounded-full border-4 border-slate-100 bg-slate-50 flex items-center justify-center overflow-hidden shadow-inner cursor-pointer hover:border-primary/30 transition-colors relative"
+                                    >
+                                        {preview ? (
+                                            <img src={preview} alt="Profile Preview" className="w-full h-full object-cover" />
+                                        ) : (
+                                            <UserPlus className="text-slate-300 text-5xl" size={48} />
+                                        )}
+                                        <div className="absolute inset-0 bg-slate-900/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity text-center">
                                             <Camera className="text-white" size={24} />
                                         </div>
-                                    </div>
-                                    <div className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-full shadow-lg">
+                                    </label>
+                                    <div className="absolute bottom-1 right-1 bg-primary text-white p-2 rounded-full shadow-lg pointer-events-none">
                                         <Plus size={14} />
                                     </div>
                                 </div>
@@ -74,53 +152,110 @@ const RegisterPage = () => {
                                 <p className="text-slate-500 mt-1">Join the Escalation Engine today</p>
                             </div>
 
-                            <form className="space-y-5">
+                            {displayError && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-5"
+                                >
+                                    <AlertCircle size={16} className="shrink-0" />
+                                    <span>{displayError}</span>
+                                </motion.div>
+                            )}
+
+                            <form className="space-y-5" onSubmit={handleSubmit}>
                                 <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
                                     <div className="flex flex-col gap-1.5 md:col-span-2">
                                         <label className="text-sm font-semibold text-slate-700">Full Name</label>
                                         <div className="relative">
                                             <User className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                            <input className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400" placeholder="John Doe" type="text" />
+                                            <input
+                                                name="name"
+                                                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400"
+                                                placeholder="John Doe"
+                                                type="text"
+                                                value={form.name}
+                                                onChange={handleChange}
+                                                required
+                                            />
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-1.5 md:col-span-2">
                                         <label className="text-sm font-semibold text-slate-700">Email Address</label>
                                         <div className="relative">
                                             <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                            <input className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400" placeholder="example@domain.com" type="email" />
+                                            <input
+                                                name="email"
+                                                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400"
+                                                placeholder="example@domain.com"
+                                                type="email"
+                                                value={form.email}
+                                                onChange={handleChange}
+                                                required
+                                            />
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-1.5">
                                         <label className="text-sm font-semibold text-slate-700">Password</label>
                                         <div className="relative">
                                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                            <input className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400" placeholder="••••••••" type="password" />
+                                            <input
+                                                name="password"
+                                                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400"
+                                                placeholder="••••••••"
+                                                type="password"
+                                                value={form.password}
+                                                onChange={handleChange}
+                                                required
+                                                minLength={6}
+                                            />
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-1.5">
                                         <label className="text-sm font-semibold text-slate-700">Confirm Password</label>
                                         <div className="relative">
                                             <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                            <input className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400" placeholder="••••••••" type="password" />
+                                            <input
+                                                name="confirmPassword"
+                                                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400"
+                                                placeholder="••••••••"
+                                                type="password"
+                                                value={form.confirmPassword}
+                                                onChange={handleChange}
+                                                required
+                                            />
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-1.5">
                                         <label className="text-sm font-semibold text-slate-700">Phone Number</label>
                                         <div className="relative">
                                             <Phone className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                            <input className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400" placeholder="+977-98XXXXXXXX" type="tel" />
+                                            <input
+                                                name="phoneNumber"
+                                                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400"
+                                                placeholder="+977-98XXXXXXXX"
+                                                type="tel"
+                                                value={form.phoneNumber}
+                                                onChange={handleChange}
+                                                required
+                                            />
                                         </div>
                                     </div>
                                     <div className="flex flex-col gap-1.5">
-                                        <label className="text-sm font-semibold text-slate-700">Ward Number</label>
+                                        <label className="text-sm font-semibold text-slate-700">Municipality</label>
                                         <div className="relative">
                                             <MapPin className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                            <select className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer">
-                                                <option disabled selected value="">Select Ward</option>
-                                                <option value="1">Ward 1</option>
-                                                <option value="2">Ward 2</option>
-                                                <option value="3">Ward 3</option>
-                                                <option value="4">Ward 4</option>
+                                            <select
+                                                name="municipality"
+                                                className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all appearance-none cursor-pointer"
+                                                value={form.municipality}
+                                                onChange={handleChange}
+                                                required
+                                            >
+                                                <option disabled value="">Select Municipality</option>
+                                                {uniqueMunicipalities.map((m) => (
+                                                    <option key={m as string} value={m as string}>{m as string}</option>
+                                                ))}
                                             </select>
                                         </div>
                                     </div>
@@ -129,11 +264,21 @@ const RegisterPage = () => {
                                     <motion.button
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
-                                        className="w-full bg-primary hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/25 transition-all flex items-center justify-center gap-2"
+                                        className="w-full bg-primary hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/25 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                                         type="submit"
+                                        disabled={isPending}
                                     >
-                                        Register
-                                        <ArrowRight size={20} />
+                                        {isPending ? (
+                                            <>
+                                                <Loader2 size={20} className="animate-spin" />
+                                                Creating Account…
+                                            </>
+                                        ) : (
+                                            <>
+                                                Register
+                                                <ArrowRight size={20} />
+                                            </>
+                                        )}
                                     </motion.button>
                                 </div>
                             </form>

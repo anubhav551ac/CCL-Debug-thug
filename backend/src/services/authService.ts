@@ -10,8 +10,8 @@ export const registerUser = async (data: {
   password: string;
   name: string;
   phoneNumber: string;
-  wardNumber: number;
   role?: Role;
+  profilePic?: string;
 }) => {
   const existing = await prisma.user.findUnique({ where: { email: data.email } });
   if (existing) {
@@ -25,8 +25,8 @@ export const registerUser = async (data: {
       password: hashed,
       name: data.name,
       phoneNumber: data.phoneNumber,
-      wardNumber: data.wardNumber,
       role: data.role ?? "CITIZEN",
+      profilePic: data.profilePic,
     },
     select: { id: true, email: true, name: true, role: true },
   });

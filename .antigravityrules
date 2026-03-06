@@ -1,0 +1,4 @@
+You are operating in a WSL (Windows Subsystem for Linux) environment. 
+All terminal commands MUST be executed in the integrated WSL terminal. 
+Do not use Windows-style paths (C:\...). Always use Linux-style paths (/home/...).
+Always use pnpm/npm commands as they are configured inside the Linux subsystem.

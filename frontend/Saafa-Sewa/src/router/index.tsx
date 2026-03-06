@@ -4,6 +4,12 @@ import { HomePage } from '../pages/home';
 import { AnimatedLayout } from '../pages/AnimatedLayout';
 import LoginPage from '../pages/Auth/LoginPage';
 import RegisterPage from '../pages/Auth/RegisterPage';
+import DashboardLayout from '@/pages/Dashboard/DashboardLayout';
+import DashboardPage from '@/pages/Dashboard/DashboardPage';
+import NewReportPage from '@/pages/Dashboard/NewReportPage';
+import LiveMapPage from '@/pages/Dashboard/LiveMapPage';
+import ImpactStatsPage from '@/pages/Dashboard/ImpactStatsPage';
+import ReportForm from '@/pages/Dashboard/ReportForm';
 
 export const router = createBrowserRouter([
   {
@@ -21,6 +27,28 @@ export const router = createBrowserRouter([
       {
         path: "/register",
         element: <RegisterPage />,
+      },
+    ],
+  },
+  {
+    path: "/app/",
+    element: <DashboardLayout />,
+    children: [
+      {
+        path: "/app/dashboard",
+        element: <DashboardPage />,
+      },
+      {
+        path: "/app/new-report",
+        element: <ReportForm />,
+      },
+      {
+        path: "/app/live-map",
+        element: <LiveMapPage />,
+      },
+      {
+        path: "/app/impact-stats",
+        element: <ImpactStatsPage />,
       },
     ],
   },

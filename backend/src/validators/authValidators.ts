@@ -7,8 +7,9 @@ export const registerSchema = z.object({
   password: z.string().min(6, "Password must be at least 6 characters"),
   name: z.string().min(1, "Name is required"),
   phoneNumber: z.string().regex(NEPAL_PHONE_REGEX, "Invalid Nepal phone number"),
-  wardNumber: z.number().int().min(1).max(33),
+  municipality: z.string().min(1, "Municipality is required"),
   role: z.enum(["CITIZEN", "COLLECTOR", "WARD_OFFICER"]).optional(),
+  profilePic: z.string().optional(),
 });
 
 export const loginSchema = z.object({

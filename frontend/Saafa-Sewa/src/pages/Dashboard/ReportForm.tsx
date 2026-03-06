@@ -1,0 +1,503 @@
+import React, { useState, useRef, useCallback } from 'react';
+import { motion } from 'motion/react';
+import {
+    Camera,
+    MapPin,
+    Zap,
+    ChevronRight,
+    Trash2,
+    Package,
+    Truck,
+    ShoppingBag,
+    Hand,
+    Leaf,
+    Recycle,
+    Cpu,
+    Stethoscope,
+    AlertOctagon,
+    FileText,
+    X,
+    Upload,
+    Info,
+    Building2
+} from 'lucide-react';
+import { MapContainer, TileLayer, Marker, useMapEvents, GeoJSON } from 'react-leaflet';
+import L from 'leaflet';
+import * as turf from '@turf/turf';
+import 'leaflet/dist/leaflet.css';
+import kathmanduPalikas from './helpers/data/kathmandu-palikas.json';
+
+// ─── Figtree Font ──────────────────────────────────────────────────────────────
+const figtreeFontStyle = `
+  @import url('https://fonts.googleapis.com/css2?family=Figtree:ital,wght@0,300..900;1,300..900&display=swap');
+  .figtree-root * { font-family: 'Figtree', sans-serif !important; }
+`;
+
+// ─── Custom Marker Icon ─────────────────────────────────────────────────────────
+const customIcon = L.divIcon({
+    html: `
+    <div class="relative flex items-center justify-center">
+      <div class="absolute w-8 h-8 bg-rose-500/30 rounded-full animate-pulse"></div>
+      <div class="w-4 h-4 bg-rose-500 rounded-full border-2 border-white shadow-lg"></div>
+    </div>
+  `,
+    className: 'custom-marker-icon',
+    iconSize: [32, 32],
+    iconAnchor: [16, 16]
+});
+
+// ─── Types ──────────────────────────────────────────────────────────────────────
+type WasteType = 'Organic' | 'Plastic' | 'Metal' | 'Paper' | 'Electronic' | 'Medical' | 'Hazardous';
+type WasteSize = 'Handful' | 'Bagful' | 'Rickshawful' | 'Truckful';
+
+const WASTE_TYPES: { type: WasteType; icon: React.ReactNode; color: string }[] = [
+    { type: 'Organic', icon: <Leaf size={14} />, color: 'bg-emerald-500' },
+    { type: 'Plastic', icon: <Recycle size={14} />, color: 'bg-blue-500' },
+    { type: 'Metal', icon: <Trash2 size={14} />, color: 'bg-slate-500' },
+    { type: 'Paper', icon: <FileText size={14} />, color: 'bg-amber-500' },
+    { type: 'Electronic', icon: <Cpu size={14} />, color: 'bg-indigo-500' },
+    { type: 'Medical', icon: <Stethoscope size={14} />, color: 'bg-rose-500' },
+    { type: 'Hazardous', icon: <AlertOctagon size={14} />, color: 'bg-red-600' },
+];
+
+const WASTE_SIZES: { size: WasteSize; icon: React.ReactNode; desc: string }[] = [
+    { size: 'Handful', icon: <Hand size={18} />, desc: 'Small litter' },
+    { size: 'Bagful', icon: <ShoppingBag size={18} />, desc: 'Standard sack' },
+    { size: 'Rickshawful', icon: <Package size={18} />, desc: 'Large pile' },
+    { size: 'Truckful', icon: <Truck size={18} />, desc: 'Massive dump' },
+];
+
+// ─── GeoJSON Style Helper ───────────────────────────────────────────────────────
+function getFeatureStyle(featureCode: number, selectedCode: number | null): L.PathOptions {
+    const isSelected = selectedCode !== null && featureCode === selectedCode;
+    return {
+        fillColor: isSelected ? '#059669' : '#64748b',
+        fillOpacity: isSelected ? 0.45 : 0.08,
+        color: isSelected ? '#059669' : '#94a3b8',
+        weight: isSelected ? 2.5 : 0.8,
+    };
+}
+
+// ─── Location Picker Component ──────────────────────────────────────────────────
+function LocationPicker({ onLocationSelect }: { onLocationSelect: (lat: number, lng: number) => void }) {
+    const [position, setPosition] = useState<[number, number] | null>(null);
+
+    useMapEvents({
+        click(e) {
+            setPosition([e.latlng.lat, e.latlng.lng]);
+            onLocationSelect(e.latlng.lat, e.latlng.lng);
+        },
+    });
+
+    return position === null ? null : (
+        <Marker position={position} icon={customIcon} />
+    );
+}
+
+// ─── Main Component ─────────────────────────────────────────────────────────────
+function ReportForm() {
+    const [selectedTypes, setSelectedTypes] = useState<WasteType[]>([]);
+    const [selectedSize, setSelectedSize] = useState<WasteSize>('Bagful');
+    const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
+    const [municipality, setMunicipality] = useState<string>('');
+    const [municipalityStatus, setMunicipalityStatus] = useState<'pending' | 'found' | 'unknown'>('pending');
+    const [selectedVdcCode, setSelectedVdcCode] = useState<number | null>(null);
+    const [description, setDescription] = useState('');
+    const [image, setImage] = useState<string | null>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleLocationSelect = useCallback((lat: number, lng: number) => {
+        setLocation({ lat, lng });
+        const pt = turf.point([lng, lat]);
+
+        let found = false;
+        for (const feature of (kathmanduPalikas as any).features) {
+            try {
+                if (turf.booleanPointInPolygon(pt, feature)) {
+                    const { name, district, code } = feature.properties;
+                    const municipalityStr = `${name}, ${district}`;
+                    setMunicipality(municipalityStr);
+                    setSelectedVdcCode(code);
+                    setMunicipalityStatus('found');
+                    found = true;
+                    break;
+                }
+            } catch {
+                // skip malformed features
+            }
+        }
+
+        if (!found) {
+            setMunicipality('');
+            setSelectedVdcCode(null);
+            setMunicipalityStatus('unknown');
+        }
+    }, []);
+
+    const toggleWasteType = (type: WasteType) => {
+        setSelectedTypes(prev =>
+            prev.includes(type) ? prev.filter(t => t !== type) : [...prev, type]
+        );
+    };
+
+    const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setImage(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
+    // GeoJSON style function — depends on selectedVdcCode
+    const geoJsonStyle = useCallback((feature?: any): L.PathOptions => {
+        return getFeatureStyle(feature?.properties?.code, selectedVdcCode);
+    }, [selectedVdcCode]);
+
+    // Municipality badge content
+    const renderMunicipalityBadge = () => {
+        if (municipalityStatus === 'pending') {
+            return (
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest animate-pulse">
+                    DROP PIN ON MAP
+                </p>
+            );
+        }
+        if (municipalityStatus === 'unknown') {
+            return (
+                <p className="text-[10px] font-black text-rose-500 uppercase tracking-widest">
+                    UNKNOWN AREA
+                </p>
+            );
+        }
+        return (
+            <p className="text-xs font-black text-emerald-600 uppercase tracking-tight leading-tight max-w-[160px] text-right">
+                {municipality}
+            </p>
+        );
+    };
+
+    return (
+        <>
+            <style>{figtreeFontStyle}</style>
+            <div className="figtree-root grid grid-cols-1 lg:grid-cols-12 gap-6 h-full pb-8">
+                {/* Left Column - Form (70%) */}
+                <div className="lg:col-span-8 space-y-6">
+                    <div className="glass-panel rounded-[2.5rem] p-10 border border-slate-200 shadow-2xl">
+                        <div className="flex items-center justify-between mb-8">
+                            <div>
+                                <h2 className="text-4xl font-black text-slate-900 tracking-tighter uppercase">REPORT MICRO-DUMP</h2>
+                                <p className="text-slate-600 font-medium">Initialize civic response protocol.</p>
+                            </div>
+                            <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                                <span className="text-[10px] font-black text-emerald-600 uppercase tracking-widest">Live Uplink</span>
+                            </div>
+                        </div>
+
+                        <div className="space-y-10">
+                            {/* Evidence Capture */}
+                            <section>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                        <Camera size={14} /> 01. EVIDENCE CAPTURE
+                                    </h3>
+                                    {image && (
+                                        <button
+                                            onClick={() => setImage(null)}
+                                            className="text-[10px] font-bold text-rose-500 hover:underline flex items-center gap-1"
+                                        >
+                                            <Trash2 size={12} /> REMOVE
+                                        </button>
+                                    )}
+                                </div>
+
+                                <div
+                                    onClick={() => fileInputRef.current?.click()}
+                                    className={`relative h-32 border-2 border-dashed rounded-2xl flex items-center justify-center cursor-pointer transition-all overflow-hidden
+                    ${image ? 'border-emerald-500 bg-emerald-50/10' : 'border-slate-300 hover:border-emerald-500 hover:bg-slate-50'}`}
+                                >
+                                    {image ? (
+                                        <div className="flex items-center gap-4 px-6 w-full">
+                                            <img src={image} alt="Preview" className="w-20 h-20 object-cover rounded-xl shadow-lg border-2 border-white" />
+                                            <div>
+                                                <p className="text-sm font-black text-slate-900">IMAGE CAPTURED</p>
+                                                <p className="text-xs text-slate-600 font-medium">Ready for transmission.</p>
+                                            </div>
+                                            <div className="ml-auto w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
+                                                <Zap size={16} />
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <div className="flex flex-col items-center gap-2">
+                                            <Upload className="text-slate-400" size={24} />
+                                            <p className="text-xs font-black text-slate-500 uppercase tracking-widest">Drop incident photo or click to upload</p>
+                                        </div>
+                                    )}
+                                    <input
+                                        type="file"
+                                        ref={fileInputRef}
+                                        onChange={handleImageChange}
+                                        className="hidden"
+                                        accept="image/*"
+                                    />
+                                </div>
+                            </section>
+
+                            {/* Categorical Triage */}
+                            <section className="grid grid-cols-1 md:grid-cols-2 gap-10">
+                                <div>
+                                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <Trash2 size={14} /> 02. WASTE TYPE
+                                    </h3>
+                                    <div className="flex flex-wrap gap-2">
+                                        {WASTE_TYPES.map((item) => (
+                                            <button
+                                                key={item.type}
+                                                onClick={() => toggleWasteType(item.type)}
+                                                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border
+                                                ${selectedTypes.includes(item.type)
+                                                        ? `${item.color} text-white border-transparent shadow-lg shadow-emerald-500/10`
+                                                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'}`}
+                                            >
+                                                {item.icon}
+                                                {item.type}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                        <Package size={14} /> 03. WASTE SIZE
+                                    </h3>
+                                    <div className="flex gap-2">
+                                        {WASTE_SIZES.map((item) => (
+                                            <button
+                                                key={item.size}
+                                                onClick={() => setSelectedSize(item.size)}
+                                                className={`flex-1 flex flex-col items-center gap-2 p-3 rounded-xl transition-all border
+                                                ${selectedSize === item.size
+                                                        ? 'bg-emerald-600 text-white border-transparent shadow-lg shadow-emerald-500/10'
+                                                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'}`}
+                                            >
+                                                {item.icon}
+                                                <span className="text-[8px] font-black uppercase tracking-tighter">{item.size}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Tactical Location Picker */}
+                            <section>
+                                <div className="flex justify-between items-center mb-4">
+                                    <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest flex items-center gap-2">
+                                        <MapPin size={14} /> 04. TACTICAL LOCATION
+                                    </h3>
+
+                                    {/* ── Municipality Badge ── */}
+                                    <div className="flex items-center gap-2 bg-white border border-slate-200 rounded-2xl px-4 py-2 shadow-sm">
+                                        <Building2
+                                            size={14}
+                                            className={
+                                                municipalityStatus === 'found'
+                                                    ? 'text-emerald-600'
+                                                    : municipalityStatus === 'unknown'
+                                                        ? 'text-rose-500'
+                                                        : 'text-slate-400'
+                                            }
+                                        />
+                                        <div className="text-right">
+                                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-0.5">
+                                                Detected Municipality
+                                            </p>
+                                            {renderMunicipalityBadge()}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="relative h-80 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-100">
+                                    <MapContainer
+                                        center={[27.7172, 85.3240]}
+                                        zoom={13}
+                                        className="w-full h-full"
+                                        zoomControl={false}
+                                    >
+                                        <TileLayer
+                                            url="https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png"
+                                            attribution='&copy; <a href="https://carto.com/attributions">CARTO</a>'
+                                        />
+
+                                        {/* ── Municipality Boundaries Layer ── */}
+                                        <GeoJSON
+                                            key={selectedVdcCode ?? 'none'}
+                                            data={kathmanduPalikas as any}
+                                            style={geoJsonStyle}
+                                        />
+
+                                        <LocationPicker onLocationSelect={handleLocationSelect} />
+                                    </MapContainer>
+
+                                    {/* Coordinates Overlay */}
+                                    <div className="absolute bottom-6 left-6 right-6 z-[1000]">
+                                        <div className="glass-panel p-4 rounded-2xl flex items-center justify-between border-white/20 bg-white/90">
+                                            <div className="flex items-center gap-3">
+                                                <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg">
+                                                    <MapPin size={20} />
+                                                </div>
+                                                <div>
+                                                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">GPS COORDINATES</p>
+                                                    <p className="text-xs font-mono font-bold text-slate-900">
+                                                        {location
+                                                            ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
+                                                            : 'WAITING FOR INPUT...'}
+                                                    </p>
+                                                </div>
+                                            </div>
+                                            <div className="w-px h-8 bg-slate-200" />
+                                            <div className="text-right">
+                                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">SIGNAL STATUS</p>
+                                                <div className="flex items-center gap-1">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${location ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`} />
+                                                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
+                                                        {location ? 'LOCKED' : 'SEARCHING'}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </section>
+
+                            {/* Contextual Description */}
+                            <section>
+                                <h3 className="text-[10px] font-black text-slate-500 uppercase tracking-widest mb-4 flex items-center gap-2">
+                                    <FileText size={14} /> 05. CONTEXTUAL INTEL
+                                </h3>
+                                <textarea
+                                    value={description}
+                                    onChange={(e) => setDescription(e.target.value)}
+                                    placeholder="Describe the situation... (e.g., 'Large pile of medical waste near the school gate, needs immediate attention.')"
+                                    className="w-full h-32 bg-slate-50 border border-slate-200 rounded-2xl p-6 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:border-emerald-500/50 transition-all font-medium resize-none"
+                                />
+                            </section>
+
+                            <div className="flex items-center justify-between pt-6 border-t border-slate-200">
+                                <button className="text-[10px] font-black text-slate-400 uppercase tracking-widest hover:text-rose-500 transition-colors">
+                                    ABORT MISSION
+                                </button>
+                                <motion.button
+                                    whileTap={{ scale: 0.98 }}
+                                    disabled={!location || !image || selectedTypes.length === 0}
+                                    className={`flex items-center gap-3 px-12 py-5 rounded-2xl font-black text-lg uppercase tracking-widest transition-all shadow-xl
+                                    ${(!location || !image || selectedTypes.length === 0)
+                                            ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
+                                            : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20'}`}
+                                >
+                                    INITIALIZE CLEANUP
+                                    <ChevronRight size={24} />
+                                </motion.button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                {/* Right Column - Sidebar (30%) */}
+                <div className="lg:col-span-4 space-y-6">
+                    {/* Escalation Engine Card */}
+                    <div className="glass-panel rounded-[2.5rem] p-8 border border-slate-200 bg-slate-900 text-white relative overflow-hidden">
+                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                            <Zap size={120} />
+                        </div>
+
+                        <div className="relative z-10">
+                            <div className="flex items-center gap-2 mb-8">
+                                <div className="w-6 h-0.5 bg-emerald-500" />
+                                <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">THE ESCALATION ENGINE</h3>
+                            </div>
+
+                            <div className="space-y-10">
+                                <EscalationStep
+                                    phase="01"
+                                    title="GOVERNMENT WINDOW"
+                                    desc="72-hour priority window for Ward cleanup. Official crews notified immediately."
+                                    color="bg-emerald-500"
+                                    active={true}
+                                />
+                                <EscalationStep
+                                    phase="02"
+                                    title="JANTA OVERRIDE"
+                                    desc="If ignored 7+ days, bounty unlocks for community gig-workers."
+                                    color="bg-amber-500"
+                                    active={false}
+                                />
+                                <EscalationStep
+                                    phase="03"
+                                    title="CIVIC COMMAND"
+                                    desc="Persistent failure leads to public leaderboard ranking and budget audits."
+                                    color="bg-rose-500"
+                                    active={false}
+                                />
+                            </div>
+
+                            <div className="mt-12 p-6 bg-white/5 rounded-2xl border border-white/10">
+                                <div className="flex items-center gap-2 mb-3 text-emerald-500">
+                                    <Info size={14} />
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">COMMAND INTEL</span>
+                                </div>
+                                <p className="text-xs text-slate-300 leading-relaxed italic">
+                                    "Accurate reporting increases your Civic Score and helps prioritize Ward resources. False reports may lead to terminal lockout."
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Pro Tips / Status */}
+                    <div className="glass-panel rounded-[2.5rem] p-8 border border-slate-100">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-6">REPORTING GUIDELINES</h3>
+                        <ul className="space-y-4">
+                            <li className="flex gap-3">
+                                <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 flex-shrink-0">
+                                    <Zap size={12} />
+                                </div>
+                                <p className="text-xs text-slate-700 font-medium">Ensure the photo clearly shows the scale of the dump.</p>
+                            </li>
+                            <li className="flex gap-3">
+                                <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 flex-shrink-0">
+                                    <Zap size={12} />
+                                </div>
+                                <p className="text-xs text-slate-700 font-medium">Drop the pin exactly where the waste is located.</p>
+                            </li>
+                            <li className="flex gap-3">
+                                <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 flex-shrink-0">
+                                    <Zap size={12} />
+                                </div>
+                                <p className="text-xs text-slate-700 font-medium">Categorize waste types accurately for specialized disposal.</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </>
+    );
+}
+
+function EscalationStep({ phase, title, desc, color, active }: any) {
+    return (
+        <div className={`flex gap-4 ${!active ? 'opacity-30' : ''}`}>
+            <div className="flex flex-col items-center">
+                <div className={`w-3 h-3 rounded-full ${color} ${active ? 'ring-4 ring-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.5)]' : ''}`} />
+                <div className="w-0.5 flex-1 bg-white/10 my-2" />
+            </div>
+            <div>
+                <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-1">PHASE {phase}: {title}</h4>
+                <p className="text-xs text-slate-300 leading-relaxed">{desc}</p>
+            </div>
+        </div>
+    );
+}
+
+export default ReportForm;

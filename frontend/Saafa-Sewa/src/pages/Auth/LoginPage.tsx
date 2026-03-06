@@ -1,13 +1,24 @@
 
+import { useState } from 'react';
 import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
-import { Leaf, Lock, Mail, ArrowRight } from 'lucide-react';
+import { Leaf, Lock, Mail, ArrowRight, AlertCircle, Loader2 } from 'lucide-react';
 import { NavItem } from '../home/HomePage';
+import { useLogin } from '@/features/auth/useAuth';
 
 
 export default function LoginPage() {
-
     const navigate = useNavigate();
+    const [email, setEmail] = useState('');
+    const [password, setPassword] = useState('');
+
+    const { mutate: login, isPending, error } = useLogin();
+
+    const handleSubmit = (e: React.FormEvent) => {
+        e.preventDefault();
+        login({ email, password });
+    };
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -53,12 +64,30 @@ export default function LoginPage() {
                                 <p className="text-slate-500 mt-1">Login to your account</p>
                             </div>
 
-                            <form className="space-y-5">
+                            {error && (
+                                <motion.div
+                                    initial={{ opacity: 0, y: -8 }}
+                                    animate={{ opacity: 1, y: 0 }}
+                                    className="flex items-center gap-2 bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3 mb-5"
+                                >
+                                    <AlertCircle size={16} className="shrink-0" />
+                                    <span>{error.message}</span>
+                                </motion.div>
+                            )}
+
+                            <form className="space-y-5" onSubmit={handleSubmit}>
                                 <div className="flex flex-col gap-1.5">
                                     <label className="text-sm font-semibold text-slate-700">Email Address</label>
                                     <div className="relative">
                                         <Mail className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                        <input className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400" placeholder="example@domain.com" type="email" />
+                                        <input
+                                            className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400"
+                                            placeholder="example@domain.com"
+                                            type="email"
+                                            value={email}
+                                            onChange={(e) => setEmail(e.target.value)}
+                                            required
+                                        />
                                     </div>
                                 </div>
                                 <div className="flex flex-col gap-1.5">
@@ -68,7 +97,14 @@ export default function LoginPage() {
                                     </div>
                                     <div className="relative">
                                         <Lock className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" size={20} />
-                                        <input className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400" placeholder="••••••••" type="password" />
+                                        <input
+                                            className="w-full pl-12 pr-4 py-3.5 rounded-xl border border-slate-200 bg-slate-50 text-slate-900 focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all placeholder:text-slate-400"
+                                            placeholder="••••••••"
+                                            type="password"
+                                            value={password}
+                                            onChange={(e) => setPassword(e.target.value)}
+                                            required
+                                        />
                                     </div>
                                 </div>
 
@@ -76,11 +112,21 @@ export default function LoginPage() {
                                     <motion.button
                                         whileHover={{ scale: 1.02 }}
                                         whileTap={{ scale: 0.98 }}
-                                        className="w-full bg-primary hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/25 transition-all flex items-center justify-center gap-2"
+                                        className="w-full bg-primary hover:bg-green-600 text-white font-bold py-4 rounded-xl shadow-lg shadow-primary/25 transition-all flex items-center justify-center gap-2 disabled:opacity-60 disabled:cursor-not-allowed"
                                         type="submit"
+                                        disabled={isPending}
                                     >
-                                        Login
-                                        <ArrowRight size={20} />
+                                        {isPending ? (
+                                            <>
+                                                <Loader2 size={20} className="animate-spin" />
+                                                Logging in…
+                                            </>
+                                        ) : (
+                                            <>
+                                                Login
+                                                <ArrowRight size={20} />
+                                            </>
+                                        )}
                                     </motion.button>
                                 </div>
                             </form>
