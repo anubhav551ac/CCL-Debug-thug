@@ -71,11 +71,13 @@ model WastePin {
   latitude      Float
   longitude     Float
   municipality  String    // e.g. "Baluwa, Kathmandu"
-  wasteType     WasteType
+  wasteType     WasteType[]
   wasteSize     WasteSize
   description   String?
+  imageUrl      String?   // Base64 or URL of the waste photo
   status        PinStatus @default(PENDING_GOV)
   bountyPool    Int       @default(0)
+  upvotes       Int       @default(0)
   
   reporter      User      @relation("Reporter", fields: [reporterId], references: [id])
   reporterId    String    @db.ObjectId

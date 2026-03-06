@@ -108,7 +108,7 @@ function NewReportPage() {
                         <CycleStep
                             phase="01"
                             title="GOVERNMENT WINDOW"
-                            desc="72-hour priority window for Ward cleanup."
+                            desc="72-hour priority window for area cleanup."
                             color="bg-primary"
                             active={true}
                         />
@@ -134,7 +134,7 @@ function NewReportPage() {
                             <span className="text-[10px] font-black uppercase tracking-widest">PRO TIP</span>
                         </div>
                         <p className="text-xs text-slate-500 italic leading-relaxed">
-                            "Hey @KathmanduMetropolis, this trash pile in Ward 3 has been ignored for 12 days. Do better. #WardWatch"
+                            "Hey @KathmanduMetropolis, this trash pile in Maharajgunj has been ignored for 12 days. Do better. #CleanUp"
                         </p>
                     </div>
                 </div>

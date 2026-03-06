@@ -20,15 +20,21 @@ const uploadsDir = path.join(__dirname, "..", "uploads");
 if (!fs.existsSync(uploadsDir)) fs.mkdirSync(uploadsDir, { recursive: true });
 
 app.use(cors({ origin: true, credentials: true }));
-app.use(express.json());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ limit: '10mb', extended: true }));
 app.use(cookieParser());
 app.use("/uploads", express.static(uploadsDir));
 if (process.env.NODE_ENV !== "production") {
   app.get("/test-auth", (_req, res) => res.sendFile(path.join(__dirname, "..", "test-auth.html")));
 }
 
+import { agePinDev } from "./controllers/pinController.js";
+
 app.use("/api/v1", apiRouter);
 app.use("/api/v1/auth", authRouter);
+
+// Dev Routes
+app.post("/api/dev/age-report/:id", agePinDev);
 
 app.use(notFound);
 app.use(errorHandler);

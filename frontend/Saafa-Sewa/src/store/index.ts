@@ -4,11 +4,13 @@ import type { TypedUseSelectorHook } from 'react-redux';
 
 import userReducer from './userSlice';
 import uiReducer from './uiSlice';
+import pinsReducer from '../features/pins/pinsSlice';
 
 const store = configureStore({
   reducer: {
     ui: uiReducer,
     user: userReducer,
+    pins: pinsReducer,
   },
 });
 

@@ -343,7 +343,7 @@ export function HomePage() {
                 </div>
                 <div className="flex-1">
                   <div className="flex justify-between items-start">
-                    <h4 className="text-sm font-bold text-[#1E293B]">Ward 7 Trash Pile</h4>
+                    <h4 className="text-sm font-bold text-[#1E293B]">Maharajgunj Trash Pile</h4>
                     <span className="text-sm font-black text-primary">Rs. 1,500</span>
                   </div>
                   <div className="flex gap-2 mt-1">

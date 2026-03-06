@@ -1,6 +1,31 @@
 import prisma from "../utils/prisma.js";
 import type { CreatePinInput, PledgeInput } from "../validators/pinValidators.js";
 
+export const getPins = async () => {
+    return await prisma.wastePin.findMany({
+        include: {
+            reporter: {
+                select: {
+                    id: true,
+                    name: true,
+                    email: true,
+                    profilePic: true,
+                },
+            },
+        },
+        orderBy: { createdAt: "desc" },
+    });
+};
+
+export const agePinDev = async (id: string) => {
+    const eightDaysAgo = new Date();
+    eightDaysAgo.setDate(eightDaysAgo.getDate() - 8);
+    return await prisma.wastePin.update({
+        where: { id },
+        data: { createdAt: eightDaysAgo }
+    });
+};
+
 export const createPin = async (userId: string, data: CreatePinInput) => {
     return await prisma.wastePin.create({
         data: {
@@ -48,5 +73,19 @@ export const createPledge = async (userId: string, pinId: string, data: PledgeIn
         });
 
         return pledge;
+    });
+};
+
+export const upvotePin = async (pinId: string) => {
+    return await prisma.wastePin.update({
+        where: { id: pinId },
+        data: { upvotes: { increment: 1 } },
+    });
+};
+
+export const removeUpvotePin = async (pinId: string) => {
+    return await prisma.wastePin.update({
+        where: { id: pinId },
+        data: { upvotes: { decrement: 1 } },
     });
 };

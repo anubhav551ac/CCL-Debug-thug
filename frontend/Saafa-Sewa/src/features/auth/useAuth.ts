@@ -20,6 +20,10 @@ export interface AuthUser {
     municipality?: string;
     createdAt: string;
     updatedAt: string;
+    _count: {
+        reportsCreated: number;
+        cleanupsDone: number;
+    };
 }
 
 interface AuthResponse {
@@ -79,6 +83,7 @@ export const useLogin = () => {
                 municipality: data.user.municipality ?? '',
                 createdAt: data.user.createdAt ?? new Date().toISOString(),
                 updatedAt: data.user.updatedAt ?? new Date().toISOString(),
+                _count: data.user._count ?? { reportsCreated: 0, cleanupsDone: 0 },
             }));
             console.log("✅ Login success", data);
             navigate("/app/dashboard");
@@ -113,6 +118,7 @@ export const useRegister = () => {
                 municipality: data.user.municipality ?? '',
                 createdAt: data.user.createdAt ?? new Date().toISOString(),
                 updatedAt: data.user.updatedAt ?? new Date().toISOString(),
+                _count: data.user._count ?? { reportsCreated: 0, cleanupsDone: 0 },
             }));
             console.log("✅ Register success", data);
             navigate("/app/dashboard");
@@ -142,6 +148,7 @@ export const useCurrentUser = () => {
                     municipality: user.municipality ?? '',
                     createdAt: user.createdAt ?? new Date().toISOString(),
                     updatedAt: user.updatedAt ?? new Date().toISOString(),
+                    _count: user._count ?? { reportsCreated: 0, cleanupsDone: 0 },
                 }));
                 persistUser(user);
                 return user;

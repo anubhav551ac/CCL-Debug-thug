@@ -81,7 +81,7 @@ function DashboardNavbar() {
                         <span className="text-[10px] uppercase tracking-widest font-black text-primary">Command Active</span>
                     </div>
                     <p className="text-xs text-slate-500 mb-4 leading-relaxed font-medium">
-                        Help us keep the city clean. Every report counts towards Ward points.
+                        Help us keep the city clean. Every report counts towards your Civic Score.
                     </p>
                     <motion.button
                         whileTap={{ scale: 0.95 }}

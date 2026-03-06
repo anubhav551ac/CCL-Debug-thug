@@ -14,6 +14,10 @@ export interface User {
     totalCleanups: number;
     createdAt: string;
     updatedAt: string;
+    _count: {
+        reportsCreated: number;
+        cleanupsDone: number;
+    };
 }
 
 export interface UserState {

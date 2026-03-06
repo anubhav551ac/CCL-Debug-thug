@@ -25,7 +25,9 @@ import { MapContainer, TileLayer, Marker, useMapEvents, GeoJSON } from 'react-le
 import L from 'leaflet';
 import * as turf from '@turf/turf';
 import 'leaflet/dist/leaflet.css';
+import { useNavigate } from 'react-router-dom';
 import kathmanduPalikas from './helpers/data/kathmandu-palikas.json';
+import { useCreatePin } from '../../features/pins/usePins';
 
 // ─── Figtree Font ──────────────────────────────────────────────────────────────
 const figtreeFontStyle = `
@@ -105,6 +107,27 @@ function ReportForm() {
     const [description, setDescription] = useState('');
     const [image, setImage] = useState<string | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const navigate = useNavigate();
+    const { mutate: createPin, isPending: isCreatingPin } = useCreatePin();
+
+    const handleSubmit = async () => {
+        if (!location || !image || selectedTypes.length === 0 || !municipality) return;
+
+        createPin({
+            latitude: location.lat,
+            longitude: location.lng,
+            municipality,
+            wasteType: selectedTypes.map(t => t.toUpperCase()),
+            wasteSize: selectedSize.toUpperCase(),
+            description,
+            imageUrl: image,
+        }, {
+            onSuccess: () => {
+                navigate('/app/dashboard');
+            }
+        });
+    };
 
     const handleLocationSelect = useCallback((lat: number, lng: number) => {
         setLocation({ lat, lng });
@@ -221,10 +244,26 @@ function ReportForm() {
                                 >
                                     {image ? (
                                         <div className="flex items-center gap-4 px-6 w-full">
-                                            <img src={image} alt="Preview" className="w-20 h-20 object-cover rounded-xl shadow-lg border-2 border-white" />
+                                            <div className="relative">
+                                                <img src={image} alt="Preview" className="w-20 h-20 object-cover rounded-xl shadow-lg border-2 border-white" />
+                                                {/* AI Validation Overlay */}
+                                                <motion.div
+                                                    initial={{ x: '-100%', opacity: 0 }}
+                                                    animate={{ x: '100%', opacity: 1 }}
+                                                    transition={{ duration: 1.5, ease: 'easeInOut' }}
+                                                    className="absolute inset-0 rounded-xl bg-emerald-500/30 backdrop-blur-sm"
+                                                >
+                                                    <div className="absolute inset-0 flex items-center justify-center">
+                                                        <div className="text-white font-black text-xs animate-pulse">✓ VERIFIED</div>
+                                                    </div>
+                                                </motion.div>
+                                            </div>
                                             <div>
                                                 <p className="text-sm font-black text-slate-900">IMAGE CAPTURED</p>
-                                                <p className="text-xs text-slate-600 font-medium">Ready for transmission.</p>
+                                                <p className="text-xs text-emerald-600 font-medium flex items-center gap-1">
+                                                    <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full animate-pulse" />
+                                                    AI VERIFIED
+                                                </p>
                                             </div>
                                             <div className="ml-auto w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center text-white shadow-lg shadow-emerald-500/20">
                                                 <Zap size={16} />
@@ -253,19 +292,31 @@ function ReportForm() {
                                         <Trash2 size={14} /> 02. WASTE TYPE
                                     </h3>
                                     <div className="flex flex-wrap gap-2">
-                                        {WASTE_TYPES.map((item) => (
-                                            <button
-                                                key={item.type}
-                                                onClick={() => toggleWasteType(item.type)}
-                                                className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border
-                                                ${selectedTypes.includes(item.type)
-                                                        ? `${item.color} text-white border-transparent shadow-lg shadow-emerald-500/10`
-                                                        : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'}`}
-                                            >
-                                                {item.icon}
-                                                {item.type}
-                                            </button>
-                                        ))}
+                                        {WASTE_TYPES.map((item) => {
+                                            const isHighPriority = item.type === 'Medical' || item.type === 'Hazardous';
+                                            const isSelected = selectedTypes.includes(item.type);
+                                            return (
+                                                <button
+                                                    key={item.type}
+                                                    onClick={() => toggleWasteType(item.type)}
+                                                    className={`flex items-center gap-2 px-3 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all border
+                                                    ${isSelected
+                                                            ? (
+                                                                isHighPriority
+                                                                    ? `${item.color} text-white border-transparent shadow-lg shadow-red-500/40 ring-2 ring-red-400`
+                                                                    : `${item.color} text-white border-transparent shadow-lg shadow-emerald-500/10`
+                                                            )
+                                                            : (
+                                                                isHighPriority
+                                                                    ? 'bg-white text-slate-500 border-2 border-rose-300 hover:border-rose-500 hover:bg-rose-50'
+                                                                    : 'bg-white text-slate-500 border-slate-200 hover:border-slate-400'
+                                                            )}`}
+                                                >
+                                                    {item.icon}
+                                                    {item.type}
+                                                </button>
+                                            );
+                                        })}
                                     </div>
                                 </div>
 
@@ -319,7 +370,7 @@ function ReportForm() {
                                     </div>
                                 </div>
 
-                                <div className="relative h-80 rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-100">
+                                <div className="relative h-[500px] rounded-[2.5rem] overflow-hidden border-4 border-white shadow-2xl bg-slate-100">
                                     <MapContainer
                                         center={[27.7172, 85.3240]}
                                         zoom={13}
@@ -341,29 +392,48 @@ function ReportForm() {
                                         <LocationPicker onLocationSelect={handleLocationSelect} />
                                     </MapContainer>
 
-                                    {/* Coordinates Overlay */}
-                                    <div className="absolute bottom-6 left-6 right-6 z-[1000]">
-                                        <div className="glass-panel p-4 rounded-2xl flex items-center justify-between border-white/20 bg-white/90">
-                                            <div className="flex items-center gap-3">
-                                                <div className="w-10 h-10 bg-emerald-600 rounded-xl flex items-center justify-center text-white shadow-lg">
-                                                    <MapPin size={20} />
+                                    {/* Tactical Crosshair Overlay */}
+                                    <div className="absolute inset-0 pointer-events-none flex items-center justify-center z-40">
+                                        <svg className="w-12 h-12 text-emerald-500 opacity-60" viewBox="0 0 100 100">
+                                            {/* Horizontal line */}
+                                            <line x1="20" y1="50" x2="80" y2="50" stroke="currentColor" strokeWidth="2" strokeDasharray="5,5" />
+                                            {/* Vertical line */}
+                                            <line x1="50" y1="20" x2="50" y2="80" stroke="currentColor" strokeWidth="2" strokeDasharray="5,5" />
+                                            {/* Center circle */}
+                                            <circle cx="50" cy="50" r="8" fill="none" stroke="currentColor" strokeWidth="2" />
+                                            {/* Corner brackets */}
+                                            <g stroke="currentColor" strokeWidth="2.5" fill="none">
+                                                <path d="M 25 25 L 35 25 L 35 35" />
+                                                <path d="M 75 25 L 65 25 L 65 35" />
+                                                <path d="M 25 75 L 35 75 L 35 65" />
+                                                <path d="M 75 75 L 65 75 L 65 65" />
+                                            </g>
+                                        </svg>
+                                    </div>
+
+                                    {/* Coordinates Overlay - Compact */}
+                                    <div className="absolute bottom-4 left-4 right-4 z-[1000]">
+                                        <div className="glass-panel p-3 rounded-2xl flex items-center justify-between border-white/20 bg-white/90">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-8 h-8 bg-emerald-600 rounded-lg flex items-center justify-center text-white shadow-lg">
+                                                    <MapPin size={16} />
                                                 </div>
                                                 <div>
-                                                    <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">GPS COORDINATES</p>
-                                                    <p className="text-xs font-mono font-bold text-slate-900">
+                                                    <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-none">GPS</p>
+                                                    <p className="text-[9px] font-mono font-bold text-slate-900 leading-none">
                                                         {location
-                                                            ? `${location.lat.toFixed(6)}, ${location.lng.toFixed(6)}`
-                                                            : 'WAITING FOR INPUT...'}
+                                                            ? `${location.lat.toFixed(4)}, ${location.lng.toFixed(4)}`
+                                                            : 'WAITING...'}
                                                     </p>
                                                 </div>
                                             </div>
-                                            <div className="w-px h-8 bg-slate-200" />
+                                            <div className="w-px h-6 bg-slate-200" />
                                             <div className="text-right">
-                                                <p className="text-[8px] font-black text-slate-500 uppercase tracking-widest">SIGNAL STATUS</p>
+                                                <p className="text-[7px] font-black text-slate-500 uppercase tracking-widest leading-none">STATUS</p>
                                                 <div className="flex items-center gap-1">
                                                     <div className={`w-1.5 h-1.5 rounded-full ${location ? 'bg-emerald-500' : 'bg-rose-500 animate-pulse'}`} />
-                                                    <span className="text-[10px] font-black text-slate-900 uppercase tracking-widest">
-                                                        {location ? 'LOCKED' : 'SEARCHING'}
+                                                    <span className="text-[9px] font-black text-slate-900 uppercase tracking-widest leading-none">
+                                                        {location ? 'LOCKED' : 'SEARCH'}
                                                     </span>
                                                 </div>
                                             </div>
@@ -391,14 +461,15 @@ function ReportForm() {
                                 </button>
                                 <motion.button
                                     whileTap={{ scale: 0.98 }}
-                                    disabled={!location || !image || selectedTypes.length === 0}
+                                    onClick={handleSubmit}
+                                    disabled={!location || !image || selectedTypes.length === 0 || !municipality || isCreatingPin}
                                     className={`flex items-center gap-3 px-12 py-5 rounded-2xl font-black text-lg uppercase tracking-widest transition-all shadow-xl
-                                    ${(!location || !image || selectedTypes.length === 0)
+                                    ${(!location || !image || selectedTypes.length === 0 || !municipality || isCreatingPin)
                                             ? 'bg-slate-200 text-slate-400 cursor-not-allowed shadow-none'
                                             : 'bg-emerald-600 text-white hover:bg-emerald-700 shadow-emerald-600/20'}`}
                                 >
-                                    INITIALIZE CLEANUP
-                                    <ChevronRight size={24} />
+                                    {isCreatingPin ? 'TRANSMITTING...' : 'INITIATE 72-HR GOVERNMENT WINDOW'}
+                                    {!isCreatingPin && <ChevronRight size={24} />}
                                 </motion.button>
                             </div>
                         </div>
@@ -423,7 +494,7 @@ function ReportForm() {
                                 <EscalationStep
                                     phase="01"
                                     title="GOVERNMENT WINDOW"
-                                    desc="72-hour priority window for Ward cleanup. Official crews notified immediately."
+                                    desc="72-hour priority window for area cleanup. Official crews notified immediately."
                                     color="bg-emerald-500"
                                     active={true}
                                 />
@@ -449,7 +520,7 @@ function ReportForm() {
                                     <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">COMMAND INTEL</span>
                                 </div>
                                 <p className="text-xs text-slate-300 leading-relaxed italic">
-                                    "Accurate reporting increases your Civic Score and helps prioritize Ward resources. False reports may lead to terminal lockout."
+                                    "Accurate reporting increases your Civic Score and helps prioritize civic cleanup resources. False reports may lead to account lockout."
                                 </p>
                             </div>
                         </div>

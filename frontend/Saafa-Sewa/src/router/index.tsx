@@ -10,6 +10,7 @@ import NewReportPage from '@/pages/Dashboard/NewReportPage';
 import LiveMapPage from '@/pages/Dashboard/LiveMapPage';
 import ImpactStatsPage from '@/pages/Dashboard/ImpactStatsPage';
 import ReportForm from '@/pages/Dashboard/ReportForm';
+import { ProtectedRoute } from '@/components/ProtectedRoute';
 
 export const router = createBrowserRouter([
   {
@@ -32,7 +33,11 @@ export const router = createBrowserRouter([
   },
   {
     path: "/app/",
-    element: <DashboardLayout />,
+    element: (
+      <ProtectedRoute>
+        <DashboardLayout />
+      </ProtectedRoute>
+    ),
     children: [
       {
         path: "/app/dashboard",

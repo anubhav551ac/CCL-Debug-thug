@@ -20,7 +20,7 @@ function DashboardPage() {
                                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Level 12 Commander</span>
                             </div>
                             <h2 className="text-4xl font-black text-slate-900 mb-2">Your Civic Score: <span className="text-primary">842</span></h2>
-                            <p className="text-slate-500 font-medium max-w-md">You're in the top 5% of Ward 10. Your actions directly impact Kathmandu's cleanliness.</p>
+                            <p className="text-slate-500 font-medium max-w-md">You're in the top 5% of Baneshwor, Kathmandu. Your actions directly impact the area's cleanliness.</p>
                         </div>
                         <div className="flex gap-4">
                             <div className="glass-card p-4 min-w-[120px] text-center">
@@ -49,13 +49,13 @@ function DashboardPage() {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <BountyProgressCard
-                            location="Ward 3, Naxal"
+                            location="Maharajgunj, Kathmandu"
                             current={400}
                             target={500}
                             urgency="High"
                         />
                         <BountyProgressCard
-                            location="Ward 10, Baneshwor"
+                            location="Baneshwor, Kathmandu"
                             current={850}
                             target={1000}
                             urgency="Medium"
@@ -147,45 +147,45 @@ function DashboardPage() {
                         <ActivityItem
                             user="Sandeep"
                             action="pledged Rs. 100"
-                            location="Ward 3"
+                            location="Maharajgunj, Kathmandu"
                             time="2m ago"
                             icon={<Users size={15} />}
                         />
                         <ActivityItem
                             user="Kabaadi-wala"
                             action="claimed a bounty"
-                            location="Naxal"
+                            location="Naxal, Kathmandu"
                             time="15m ago"
                             icon={<Zap size={15} />}
                         />
                         <ActivityItem
                             user="Priya"
                             action="reported new dump"
-                            location="Ward 10"
+                            location="Baneshwor, Kathmandu"
                             time="1h ago"
                             icon={<Info size={15} />}
                         />
                         <ActivityItem
                             user="Metropolis"
                             action="resolved report"
-                            location="Ward 7"
+                            location="Kamaladi, Kathmandu"
                             time="3h ago"
                             icon={<CheckCircle size={15} />}
                         />
                     </div>
                 </div>
 
-                {/* Ward Performance Bar */}
+                {/* Municipality Performance Bar */}
                 <div className="glass-panel rounded-[2.5rem] p-8 shadow-xl relative overflow-hidden">
                     <div className="flex justify-between items-start mb-8">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">WARD PERFORMANCE</h3>
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">MUNICIPALITY PERFORMANCE</h3>
                         <TrendingUp size={16} className="text-primary" />
                     </div>
 
                     <div className="space-y-6">
                         <div>
                             <div className="flex justify-between mb-2">
-                                <span className="text-xs font-bold text-slate-700">Ward 10 (Best)</span>
+                                <span className="text-xs font-bold text-slate-700">Baneshwor, Kathmandu (Best)</span>
                                 <span className="text-xs font-black text-primary">98% Resolve</span>
                             </div>
                             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -199,7 +199,7 @@ function DashboardPage() {
 
                         <div>
                             <div className="flex justify-between mb-2">
-                                <span className="text-xs font-bold text-slate-700">Ward 03 (Worst)</span>
+                                <span className="text-xs font-bold text-slate-700">Maharajgunj, Kathmandu (Worst)</span>
                                 <span className="text-xs font-black text-rose-500">12% Resolve</span>
                             </div>
                             <div className="h-2 bg-slate-100 rounded-full overflow-hidden">
@@ -225,7 +225,7 @@ function DashboardPage() {
                         <CycleStep
                             phase="01"
                             title="GOVERNMENT WINDOW"
-                            desc="72-hour priority window for Ward cleanup."
+                            desc="72-hour priority window for area cleanup."
                             color="bg-primary"
                             active={true}
                         />

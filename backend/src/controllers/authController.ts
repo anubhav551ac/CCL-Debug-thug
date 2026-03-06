@@ -92,7 +92,6 @@ export const me = async (req: Request, res: Response, next: NextFunction): Promi
       totalReports: user._count.reportsCreated,
       totalCleanups: user._count.cleanupsDone,
       municipality: "", // This can be set later if we store it in User model
-      _count: undefined,
     };
 
     res.status(200).json({ success: true, data: { user: userResponse } });

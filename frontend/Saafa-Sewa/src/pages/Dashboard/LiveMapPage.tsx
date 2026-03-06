@@ -10,10 +10,17 @@ import {
     AlertTriangle,
     CheckCircle2
 } from 'lucide-react';
-import { MapContainer, TileLayer, Marker, Popup, useMap, Circle } from 'react-leaflet';
+import { MapContainer, TileLayer, Marker, Popup, useMap, Circle, GeoJSON } from 'react-leaflet';
 import MarkerClusterGroup from 'react-leaflet-cluster';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
+import { useFetchPins, useAgePinDev } from '../../features/pins/usePins';
+import { setPins } from '../../features/pins/pinsSlice';
+import { useAppDispatch, useAppSelector } from '../../store';
+import kathmanduPalikas from './helpers/data/kathmandu-palikas.json';
+import ReportDetailsPanel from '../Reports/ReportDetailsPage';
+import { useNavigate } from 'react-router-dom';
+// import { toast } from 'sonner';
 
 // Fix for default Leaflet icons in environments where they don't load correctly
 // This is a common "subtle" issue with Leaflet in modern bundlers.
@@ -46,19 +53,20 @@ interface WardData {
 // CONSTANTS
 const KATHMANDU_CENTER: [number, number] = [27.7172, 85.3240];
 
-const MOCK_REPORTS: Report[] = [
-    { id: 1, lat: 27.7172, lng: 85.3240, status: 'green', days: 1, ward: 'Ward 10', type: 'Trash Accumulation' },
-    { id: 2, lat: 27.7000, lng: 85.3000, status: 'yellow', days: 5, ward: 'Ward 08', type: 'Clogged Drain' },
-    { id: 3, lat: 27.7200, lng: 85.3100, status: 'red', days: 12, ward: 'Ward 03', type: 'Illegal Dumping' },
-    { id: 4, lat: 27.7100, lng: 85.3300, status: 'green', days: 2, ward: 'Ward 10', type: 'Trash Accumulation' },
-    { id: 5, lat: 27.6900, lng: 85.3200, status: 'red', days: 8, ward: 'Ward 03', type: 'Clogged Drain' },
-    { id: 6, lat: 27.7050, lng: 85.3150, status: 'yellow', days: 4, ward: 'Ward 08', type: 'Trash Accumulation' },
-];
+const MOCK_REPORTS: Report[] = []; // Replaced by real data
 
-const WARD_CENTERS: Record<string, WardData> = {
-    'Ward 10': { lat: 27.7172, lng: 85.3240, redPins: 2 },
-    'Ward 08': { lat: 27.7000, lng: 85.3000, redPins: 5 },
-    'Ward 03': { lat: 27.7200, lng: 85.3100, redPins: 15 },
+const MUNICIPALITY_CENTERS: Record<string, WardData> = {
+    'Baneshwor, Kathmandu': { lat: 27.7172, lng: 85.3240, redPins: 2 },
+    'Nakshal, Kathmandu': { lat: 27.7000, lng: 85.3000, redPins: 5 },
+    'Maharajgunj, Kathmandu': { lat: 27.7200, lng: 85.3100, redPins: 15 },
+};
+
+// ─── GeoJSON Style Helper ───────────────────────────────────────────────────────
+const geoJsonStyle: L.PathOptions = {
+    fillColor: '#64748b',
+    fillOpacity: 0.05,
+    color: '#94a3b8',
+    weight: 1,
 };
 
 // STATIC UTILS
@@ -105,9 +113,25 @@ function MapController({ center }: { center: [number, number] | null }) {
 
 // MAIN COMPONENT
 function LiveMapPage() {
+    const dispatch = useAppDispatch();
+    const pins = useAppSelector((state) => state.pins.pins);
+    const { data: fetchedPins, isLoading } = useFetchPins();
+    const agePinDev = useAgePinDev();
+
+    useEffect(() => {
+        if (fetchedPins) {
+            dispatch(setPins(fetchedPins));
+        }
+    }, [fetchedPins, dispatch]);
+
+
+    const navigate = useNavigate();
+
+
     const [selectedWard, setSelectedWard] = useState<string | null>(null);
     const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
     const [showHeatmap, setShowHeatmap] = useState(false);
+    const [selectedPin, setSelectedPin] = useState<any>(null);
 
     // Business Logic
     const handleWardSelect = (ward: string, lat: number, lng: number) => {
@@ -123,7 +147,7 @@ function LiveMapPage() {
     // Memoize heatmap layers to prevent jumpy rendering
     const HeatmapLayers = useMemo(() => {
         if (!showHeatmap) return null;
-        return Object.entries(WARD_CENTERS).map(([name, data]) => (
+        return Object.entries(MUNICIPALITY_CENTERS).map(([name, data]) => (
             <Circle
                 key={name}
                 center={[data.lat, data.lng]}
@@ -155,6 +179,12 @@ function LiveMapPage() {
                             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
                         />
 
+                        {/* ── Municipality Boundaries Layer ── */}
+                        <GeoJSON
+                            data={kathmanduPalikas as any}
+                            style={geoJsonStyle}
+                        />
+
                         {/* Programmatic Controls */}
                         <MapController center={mapCenter} />
 
@@ -172,37 +202,112 @@ function LiveMapPage() {
                                 fillOpacity: 0.2,
                             }}
                         >
-                            {MOCK_REPORTS.map((report) => (
-                                <Marker
-                                    key={report.id}
-                                    position={[report.lat, report.lng]}
-                                    icon={ICONS[report.status]}
-                                >
-                                    <Popup className="custom-popup">
-                                        <div className="p-3 min-w-[220px]">
-                                            <div className="flex justify-between items-start mb-2 gap-2">
-                                                <h4 className="font-black text-primary uppercase text-[10px] tracking-widest">{report.type}</h4>
-                                                <span className={`text-[8px] font-black px-2 py-0.5 rounded-full whitespace-nowrap ${report.status === 'red' ? 'bg-rose-500/20 text-rose-500' :
-                                                        report.status === 'yellow' ? 'bg-amber-500/20 text-amber-500' :
-                                                            'bg-primary/20 text-primary'
-                                                    }`}>
-                                                    {report.days}D AGING
-                                                </span>
+                            {pins.map((pin) => {
+                                const createdAtDate = new Date(pin.createdAt);
+                                const now = new Date();
+                                const daysDiff = Math.floor((now.getTime() - createdAtDate.getTime()) / (1000 * 3600 * 24));
+                                const ageDisplay = daysDiff === 0 ? '< 1D' : `${daysDiff}D`;
+
+                                // Map backend status to our frontend colors based on age
+                                let pinColor: 'green' | 'yellow' | 'red' = 'green';
+                                if (daysDiff >= 7) pinColor = 'red';
+                                else if (daysDiff >= 3) pinColor = 'yellow';
+                                else pinColor = 'green';
+
+                                return (
+                                    <Marker
+                                        key={pin.id}
+                                        position={[pin.latitude, pin.longitude]}
+                                        icon={ICONS[pinColor]}
+                                    >
+                                        <Popup className="custom-popup">
+                                            <div className="p-3 min-w-[240px] max-w-[280px]">
+                                                {/* Header: Municipality in BOLD CAPS */}
+                                                <div className="flex justify-between items-start mb-2 gap-2 border-b border-slate-100 pb-2">
+                                                    <h4 className="font-black text-slate-900 uppercase text-xs tracking-widest">{pin.municipality}</h4>
+                                                    <span className={`text-[8px] font-black px-2 py-0.5 rounded-full whitespace-nowrap ${pinColor === 'red' ? 'bg-rose-500/20 text-rose-500' :
+                                                        pinColor === 'yellow' ? 'bg-amber-500/20 text-amber-500' :
+                                                            'bg-emerald-500/20 text-emerald-600'
+                                                        }`}>
+                                                        {pin.status.replace('_', ' ')}
+                                                    </span>
+                                                </div>
+
+                                                {/* Image Thumbnail */}
+                                                {pin.imageUrl && (
+                                                    <div className="w-full h-24 mb-3 rounded-lg overflow-hidden border border-slate-200">
+                                                        <img src={pin.imageUrl} alt="Waste" className="w-full h-full object-cover" />
+                                                    </div>
+                                                )}
+
+                                                {/* Tags: Waste Types & Size */}
+                                                <div className="flex flex-wrap gap-1 mb-3">
+                                                    {pin.wasteType.map((type, idx) => (
+                                                        <span key={idx} className="bg-slate-100 text-slate-600 text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                                            {type}
+                                                        </span>
+                                                    ))}
+                                                    <span className="bg-primary/10 text-primary text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                                        {pin.wasteSize}
+                                                    </span>
+                                                    <span className="bg-slate-100 text-slate-500 text-[9px] font-bold px-1.5 py-0.5 rounded">
+                                                        {ageDisplay} RECORDED
+                                                    </span>
+                                                </div>
+
+                                                {/* Description Text */}
+                                                <p className="text-xs text-slate-600 mb-4 leading-relaxed font-medium line-clamp-3">
+                                                    {pin.description || "No description provided by the reporter."}
+                                                </p>
+
+                                                <motion.button
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={() => {
+                                                        setSelectedPin({
+                                                            id: pin.id as any,
+                                                            title: (pin.wasteType || []).join(', ') || 'Waste Report',
+                                                            lat: pin.latitude,
+                                                            lng: pin.longitude,
+                                                            status: pinColor,
+                                                            days: daysDiff,
+                                                            ward: pin.municipality,
+                                                            type: pin.wasteSize,
+                                                            description: pin.description,
+                                                            imageUrl: pin.imageUrl,
+                                                            reportedBy: {
+                                                                name: pin.reporter?.name || "Anonymous Citizen",
+                                                                avatar: pin.reporter?.profilePic || ""
+                                                            },
+                                                            bountyPool: `रू ${pin.bountyPool}`,
+                                                            timestamp: new Date(pin.createdAt).toLocaleString(),
+                                                            votes: 0 // Replace with actual votes if available
+                                                        });
+                                                    }}
+                                                    className="w-full bg-primary text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 mb-2"
+                                                >
+                                                    View Tactical Details
+                                                </motion.button>
+
+                                                <motion.button
+                                                    whileTap={{ scale: 0.95 }}
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        agePinDev.mutate(pin.id, {
+                                                            onSuccess: () => {
+                                                                console.log("Success in LiveMapPage");
+                                                            }
+                                                        });
+                                                    }}
+                                                    className="w-full bg-slate-200 text-slate-700 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-sm hover:bg-slate-300 transition-colors"
+                                                    disabled={agePinDev.isPending}
+                                                >
+                                                    {agePinDev.isPending ? 'Aging...' : 'Dev Toggle (Age 8 Days)'}
+                                                </motion.button>
                                             </div>
-                                            <p className="text-xs text-slate-600 mb-4 leading-relaxed font-medium">
-                                                Location: <span className="text-slate-900 font-bold">{report.ward}</span>.
-                                                High priority escalation protocol active.
-                                            </p>
-                                            <motion.button
-                                                whileTap={{ scale: 0.95 }}
-                                                className="w-full bg-primary text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20"
-                                            >
-                                                View Tactical Details
-                                            </motion.button>
-                                        </div>
-                                    </Popup>
-                                </Marker>
-                            ))}
+                                        </Popup>
+                                    </Marker>
+                                )
+                            })}
                         </MarkerClusterGroup>
                     </MapContainer>
 
@@ -258,7 +363,7 @@ function LiveMapPage() {
                     <div className="flex justify-between items-center mb-8">
                         <div>
                             <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">TACTICAL STATUS</p>
-                            <h3 className="text-xl font-black text-slate-900">Ward Escalation Ranking</h3>
+                            <h3 className="text-xl font-black text-slate-900">Area Escalation Ranking</h3>
                         </div>
                         <Info size={18} className="text-slate-400" />
                     </div>
@@ -266,35 +371,36 @@ function LiveMapPage() {
                     <div className="space-y-4">
                         <RankItem
                             rank={1}
-                            ward="Ward 08"
+                            ward="Nakshal, Kathmandu"
                             stat="Avg Resolve: 4.2h"
                             color="bg-primary/5"
-                            isActive={selectedWard === 'Ward 08'}
-                            onClick={() => handleWardSelect('Ward 08', 27.7000, 85.3000)}
+                            isActive={selectedWard === 'Nakshal, Kathmandu'}
+                            onClick={() => handleWardSelect('Nakshal, Kathmandu', 27.7000, 85.3000)}
                         />
                         <RankItem
                             rank={2}
-                            ward="Ward 10"
+                            ward="Baneshwor, Kathmandu"
                             stat="Avg Resolve: 6.1h"
                             color="bg-slate-50"
-                            isActive={selectedWard === 'Ward 10'}
-                            onClick={() => handleWardSelect('Ward 10', 27.7172, 85.3240)}
+                            isActive={selectedWard === 'Baneshwor, Kathmandu'}
+                            onClick={() => handleWardSelect('Baneshwor, Kathmandu', 27.7172, 85.3240)}
                         />
                         <RankItem
                             rank={32}
-                            ward="Ward 03"
+                            ward="Maharajgunj, Kathmandu"
                             stat="24 Active Red Pins"
                             color="bg-rose-500/5"
                             textColor="text-rose-500"
                             isBad
-                            isActive={selectedWard === 'Ward 03'}
-                            onClick={() => handleWardSelect('Ward 03', 27.7200, 85.3100)}
+                            isActive={selectedWard === 'Maharajgunj, Kathmandu'}
+                            onClick={() => handleWardSelect('Maharajgunj, Kathmandu', 27.7200, 85.3100)}
                         />
                     </div>
 
                     <motion.button
                         whileTap={{ scale: 0.98 }}
                         className="w-full mt-8 py-4 glass-card text-[10px] font-black text-slate-900 uppercase tracking-widest hover:bg-slate-50 transition-colors shadow-sm"
+                        onClick={() => navigate("/app/impact-stats")}
                     >
                         View Full Metropols Ranking
                     </motion.button>
@@ -311,7 +417,7 @@ function LiveMapPage() {
                         <CycleStep
                             phase="01"
                             title="GOVERNMENT WINDOW"
-                            desc="72-hour priority window for Ward cleanup crews."
+                            desc="72-hour priority window for civic cleanup crews."
                             color="bg-primary"
                             active
                         />
@@ -337,11 +443,16 @@ function LiveMapPage() {
                             <span className="text-[10px] font-black uppercase tracking-widest">CRITICAL ALERT</span>
                         </div>
                         <p className="text-xs text-slate-300 italic leading-relaxed font-medium">
-                            "Ward 03 has passed Threshold Sigma. Bounty pool incentivization increased by 25% for rapid clearance."
+                            "Maharajgunj, Kathmandu has passed Threshold Sigma. Bounty pool incentivization increased by 25% for rapid clearance."
                         </p>
                     </div>
                 </div>
             </div>
+
+            <ReportDetailsPanel
+                report={selectedPin}
+                onClose={() => setSelectedPin(null)}
+            />
         </div>
     );
 }

@@ -12,7 +12,7 @@ function ImpactStats() {
                         <div className="w-8 h-1 bg-slate-100 rounded-full" />
                         <div className="w-8 h-1 bg-slate-100 rounded-full" />
                     </div>
-                    <h2 className="text-4xl font-black text-slate-900 mb-2">Ward Impact Overview</h2>
+                    <h2 className="text-4xl font-black text-slate-900 mb-2">Municipality Impact Overview</h2>
                     <p className="text-slate-400 font-medium mb-10">Real-time civic accountability and waste management metrics across Kathmandu.</p>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -39,8 +39,8 @@ function ImpactStats() {
                     <div className="mt-16">
                         <div className="flex items-center justify-between mb-8">
                             <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">WARD PERFORMANCE</p>
-                                <h3 className="text-2xl font-black text-slate-900">Kathmandu Ward Leaderboard</h3>
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">MUNICIPALITY PERFORMANCE</p>
+                                <h3 className="text-2xl font-black text-slate-900">Kathmandu Area Leaderboard</h3>
                             </div>
                             <button className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">View All Wards</button>
                         </div>
@@ -49,16 +49,16 @@ function ImpactStats() {
                             <table className="w-full">
                                 <thead>
                                     <tr className="text-left border-b border-slate-50">
-                                        <th className="pb-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Ward Number</th>
+                                        <th className="pb-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Municipality/Area</th>
                                         <th className="pb-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Active Red Pins</th>
                                         <th className="pb-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Response Rate %</th>
                                         <th className="pb-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Impact Points</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-slate-50">
-                                    <WardRow ward="03" name="Ward 3 (Maharajgunj)" pins="12 Reports" rate={94} points="42,800" color="text-primary" />
-                                    <WardRow ward="10" name="Ward 10 (Baneshwor)" pins="08 Reports" rate={88} points="38,120" color="text-primary" />
-                                    <WardRow ward="01" name="Ward 1 (Naxal)" pins="24 Reports" rate={62} points="21,450" color="text-amber-500" />
+                                    <WardRow ward="Maharajgunj" name="Maharajgunj, Kathmandu" pins="12 Reports" rate={94} points="42,800" color="text-primary" />
+                                    <WardRow ward="Baneshwor" name="Baneshwor, Kathmandu" pins="08 Reports" rate={88} points="38,120" color="text-primary" />
+                                    <WardRow ward="Naxal" name="Naxal, Kathmandu" pins="24 Reports" rate={62} points="21,450" color="text-amber-500" />
                                 </tbody>
                             </table>
                         </div>
@@ -109,7 +109,7 @@ function ImpactStats() {
 
                 {/* Top Pledgers Widget */}
                 <div className="glass-panel rounded-[2.5rem] p-8 border border-slate-100">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8">TOP PLEDGERS (WARD 3)</h3>
+                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8">TOP PLEDGERS (MAHARAJGUNJ)</h3>
 
                     <div className="space-y-6">
                         <PledgerItem name="Nabil Bank" amount="रू 25,000" icon={<BankIcon />} />
