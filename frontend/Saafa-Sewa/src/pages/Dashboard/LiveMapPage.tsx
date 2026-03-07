@@ -3,7 +3,6 @@ import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import {
     Info,
-    Zap,
     Search,
     Layers,
     Crosshair,
@@ -34,15 +33,7 @@ L.Icon.Default.mergeOptions({
 // TYPES
 type ReportStatus = 'green' | 'yellow' | 'red';
 
-interface Report {
-    id: number;
-    lat: number;
-    lng: number;
-    status: ReportStatus;
-    days: number;
-    ward: string;
-    type: string;
-}
+
 
 interface WardData {
     lat: number;
@@ -52,8 +43,6 @@ interface WardData {
 
 // CONSTANTS
 const KATHMANDU_CENTER: [number, number] = [27.7172, 85.3240];
-
-const MOCK_REPORTS: Report[] = []; // Replaced by real data
 
 const MUNICIPALITY_CENTERS: Record<string, WardData> = {
     'Baneshwor, Kathmandu': { lat: 27.7172, lng: 85.3240, redPins: 2 },
@@ -115,7 +104,7 @@ function MapController({ center }: { center: [number, number] | null }) {
 function LiveMapPage() {
     const dispatch = useAppDispatch();
     const pins = useAppSelector((state) => state.pins.pins);
-    const { data: fetchedPins, isLoading } = useFetchPins();
+    const { data: fetchedPins } = useFetchPins();
     const agePinDev = useAgePinDev();
 
     useEffect(() => {
@@ -132,6 +121,58 @@ function LiveMapPage() {
     const [mapCenter, setMapCenter] = useState<[number, number] | null>(null);
     const [showHeatmap, setShowHeatmap] = useState(false);
     const [selectedPin, setSelectedPin] = useState<any>(null);
+
+    // Sync selectedPin with pins when they update via polling
+    useEffect(() => {
+        if (!selectedPin?.id || pins.length === 0) return;
+        
+        const updatedPinStr = pins.find(p => p.id === selectedPin.id);
+        if (updatedPinStr) {
+            const createdAtDate = new Date(updatedPinStr.createdAt);
+            const now = new Date();
+            const daysDiff = Math.floor((now.getTime() - createdAtDate.getTime()) / (1000 * 3600 * 24));
+            
+            let pinColor: 'green' | 'yellow' | 'red' = 'green';
+            if (daysDiff >= 7) pinColor = 'red';
+            else if (daysDiff >= 3) pinColor = 'yellow';
+            else pinColor = 'green';
+            
+            const newObj = {
+                id: updatedPinStr.id as any,
+                title: (updatedPinStr.wasteType || []).join(', ') || 'Waste Report',
+                lat: updatedPinStr.latitude,
+                lng: updatedPinStr.longitude,
+                status: pinColor,
+                pinStatus: updatedPinStr.status,
+                days: daysDiff,
+                ward: updatedPinStr.municipality,
+                type: updatedPinStr.wasteSize,
+                description: updatedPinStr.description,
+                imageUrl: updatedPinStr.imageUrl,
+                reportedBy: {
+                    name: updatedPinStr.reporter?.name || "Anonymous Citizen",
+                    avatar: updatedPinStr.reporter?.profilePic || ""
+                },
+                bountyPool: `रू ${updatedPinStr.bountyPool}`,
+                timestamp: new Date(updatedPinStr.createdAt).toLocaleString(),
+                votes: updatedPinStr.upvotes,
+                cleanupProof: updatedPinStr.cleanupProof || null,
+            };
+            
+            setSelectedPin((prev: any) => {
+                if (!prev) return newObj;
+                // Avoid unnecessary re-renders if nothing important changed
+                if (prev.votes !== newObj.votes || 
+                    prev.bountyPool !== newObj.bountyPool || 
+                    prev.pinStatus !== newObj.pinStatus || 
+                    prev.days !== newObj.days ||
+                    JSON.stringify(prev.cleanupProof) !== JSON.stringify(newObj.cleanupProof)) {
+                    return newObj;
+                }
+                return prev;
+            });
+        }
+    }, [pins, selectedPin?.id]);
 
     // Business Logic
     const handleWardSelect = (ward: string, lat: number, lng: number) => {
@@ -269,6 +310,7 @@ function LiveMapPage() {
                                                             lat: pin.latitude,
                                                             lng: pin.longitude,
                                                             status: pinColor,
+                                                            pinStatus: pin.status,
                                                             days: daysDiff,
                                                             ward: pin.municipality,
                                                             type: pin.wasteSize,
@@ -280,7 +322,8 @@ function LiveMapPage() {
                                                             },
                                                             bountyPool: `रू ${pin.bountyPool}`,
                                                             timestamp: new Date(pin.createdAt).toLocaleString(),
-                                                            votes: 0 // Replace with actual votes if available
+                                                            votes: pin.upvotes,
+                                                            cleanupProof: pin.cleanupProof || null,
                                                         });
                                                     }}
                                                     className="w-full bg-primary text-white py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-primary/20 mb-2"
@@ -406,52 +449,13 @@ function LiveMapPage() {
                     </motion.button>
                 </div>
 
-                {/* Escalation Engine Widget */}
-                <div className="glass-panel rounded-[2.5rem] p-8 shadow-xl border border-white bg-slate-900 text-white">
-                    <div className="flex items-center gap-3 mb-8">
-                        <div className="w-10 h-0.5 bg-primary" />
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-primary">THE ESCALATION ENGINE</h3>
-                    </div>
 
-                    <div className="space-y-8">
-                        <CycleStep
-                            phase="01"
-                            title="GOVERNMENT WINDOW"
-                            desc="72-hour priority window for civic cleanup crews."
-                            color="bg-primary"
-                            active
-                        />
-                        <CycleStep
-                            phase="02"
-                            title="JANTA OVERRIDE"
-                            desc="Bounty unlocks for community gig-workers after 7 days."
-                            color="bg-amber-500"
-                            active
-                        />
-                        <CycleStep
-                            phase="03"
-                            title="CIVIC COMMAND"
-                            desc="Budget audits and public ranking for persistent failure."
-                            color="bg-rose-500"
-                            active
-                        />
-                    </div>
-
-                    <div className="mt-10 bg-white/5 rounded-3xl p-6 border border-white/10 backdrop-blur-sm">
-                        <div className="flex items-center gap-2 mb-3 text-rose-400">
-                            <Zap size={14} className="fill-rose-400" />
-                            <span className="text-[10px] font-black uppercase tracking-widest">CRITICAL ALERT</span>
-                        </div>
-                        <p className="text-xs text-slate-300 italic leading-relaxed font-medium">
-                            "Maharajgunj, Kathmandu has passed Threshold Sigma. Bounty pool incentivization increased by 25% for rapid clearance."
-                        </p>
-                    </div>
-                </div>
             </div>
 
             <ReportDetailsPanel
                 report={selectedPin}
                 onClose={() => setSelectedPin(null)}
+                onVoteChange={(votes) => setSelectedPin((prev: any) => (prev ? { ...prev, votes } : null))}
             />
         </div>
     );
@@ -489,19 +493,6 @@ function LegendItem({ color, label, isPulse }: any) {
     );
 }
 
-function CycleStep({ phase, title, desc, color, active }: any) {
-    return (
-        <div className={`flex gap-5 ${!active ? 'opacity-30' : ''}`}>
-            <div className="flex flex-col items-center">
-                <div className={`w-3 h-3 rounded-full ${color} ${active ? 'ring-4 ring-white/10' : ''}`} />
-                <div className="w-0.5 flex-1 bg-white/10 my-2" />
-            </div>
-            <div>
-                <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-1">PHASE {phase}: {title}</h4>
-                <p className="text-xs text-slate-400 leading-relaxed font-medium">{desc}</p>
-            </div>
-        </div>
-    );
-}
+
 
 export default LiveMapPage;

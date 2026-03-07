@@ -210,8 +210,8 @@ const ProfileCardModal: React.FC<ProfileCardModalProps> = ({
                                             <p className="text-[10px] font-black text-slate-600 uppercase tracking-widest mb-1">
                                                 Balance
                                             </p>
-                                            <p className="text-2xl font-black text-slate-900">
-                                                {mockBalance}
+                                            <p className="text-xl font-black text-slate-900 break-words">
+                                                रू {mockBalance.toLocaleString()}
                                             </p>
                                         </div>
                                     </div>

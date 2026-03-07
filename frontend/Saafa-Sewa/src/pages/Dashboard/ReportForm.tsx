@@ -16,16 +16,19 @@ import {
     Stethoscope,
     AlertOctagon,
     FileText,
-    X,
     Upload,
     Info,
-    Building2
+    Building2,
+    Shield,
+    Users,
+    CheckCircle
 } from 'lucide-react';
 import { MapContainer, TileLayer, Marker, useMapEvents, GeoJSON } from 'react-leaflet';
 import L from 'leaflet';
 import * as turf from '@turf/turf';
 import 'leaflet/dist/leaflet.css';
 import { useNavigate } from 'react-router-dom';
+import { toast } from 'sonner';
 import kathmanduPalikas from './helpers/data/kathmandu-palikas.json';
 import { useCreatePin } from '../../features/pins/usePins';
 
@@ -124,6 +127,7 @@ function ReportForm() {
             imageUrl: image,
         }, {
             onSuccess: () => {
+                toast.success("Report Submitted", { description: "Your civic report has been securely transmitted." });
                 navigate('/app/dashboard');
             }
         });
@@ -479,8 +483,8 @@ function ReportForm() {
                 {/* Right Column - Sidebar (30%) */}
                 <div className="lg:col-span-4 space-y-6">
                     {/* Escalation Engine Card */}
-                    <div className="glass-panel rounded-[2.5rem] p-8 border border-slate-200 bg-slate-900 text-white relative overflow-hidden">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
+                    <div className="glass-panel rounded-[2.5rem] p-8 border border-slate-200 bg-white relative overflow-hidden shadow-xl">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 text-emerald-500">
                             <Zap size={120} />
                         </div>
 
@@ -490,11 +494,12 @@ function ReportForm() {
                                 <h3 className="text-[10px] font-black uppercase tracking-widest text-emerald-500">THE ESCALATION ENGINE</h3>
                             </div>
 
-                            <div className="space-y-10">
+                            <div className="space-y-4">
                                 <EscalationStep
                                     phase="01"
                                     title="GOVERNMENT WINDOW"
                                     desc="72-hour priority window for area cleanup. Official crews notified immediately."
+                                    icon={<Building2 size={16} />}
                                     color="bg-emerald-500"
                                     active={true}
                                 />
@@ -502,6 +507,7 @@ function ReportForm() {
                                     phase="02"
                                     title="JANTA OVERRIDE"
                                     desc="If ignored 7+ days, bounty unlocks for community gig-workers."
+                                    icon={<Users size={16} />}
                                     color="bg-amber-500"
                                     active={false}
                                 />
@@ -509,17 +515,19 @@ function ReportForm() {
                                     phase="03"
                                     title="CIVIC COMMAND"
                                     desc="Persistent failure leads to public leaderboard ranking and budget audits."
+                                    icon={<Shield size={16} />}
                                     color="bg-rose-500"
                                     active={false}
+                                    isLast
                                 />
                             </div>
 
-                            <div className="mt-12 p-6 bg-white/5 rounded-2xl border border-white/10">
-                                <div className="flex items-center gap-2 mb-3 text-emerald-500">
-                                    <Info size={14} />
-                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-400">COMMAND INTEL</span>
+                            <div className="mt-10 p-5 bg-emerald-50 rounded-2xl border border-emerald-100 group hover:border-emerald-500/30 transition-all">
+                                <div className="flex items-center gap-2 mb-3 text-emerald-600">
+                                    <Zap size={14} className="animate-pulse" />
+                                    <span className="text-[10px] font-black uppercase tracking-widest">COMMAND INTEL</span>
                                 </div>
-                                <p className="text-xs text-slate-300 leading-relaxed italic">
+                                <p className="text-xs text-slate-700 leading-relaxed italic group-hover:text-slate-900 transition-colors">
                                     "Accurate reporting increases your Civic Score and helps prioritize civic cleanup resources. False reports may lead to account lockout."
                                 </p>
                             </div>
@@ -527,26 +535,28 @@ function ReportForm() {
                     </div>
 
                     {/* Pro Tips / Status */}
-                    <div className="glass-panel rounded-[2.5rem] p-8 border border-slate-100">
-                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-6">REPORTING GUIDELINES</h3>
+                    <div className="glass-panel rounded-[2.5rem] p-8 border border-slate-100 bg-white/50">
+                        <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-500 mb-6 flex items-center gap-2">
+                             <Info size={14} className="text-emerald-500" /> REPORTING GUIDELINES
+                        </h3>
                         <ul className="space-y-4">
-                            <li className="flex gap-3">
-                                <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 flex-shrink-0">
-                                    <Zap size={12} />
+                            <li className="flex gap-4">
+                                <div className="w-6 h-6 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 flex-shrink-0">
+                                    <CheckCircle size={14} />
                                 </div>
-                                <p className="text-xs text-slate-700 font-medium">Ensure the photo clearly shows the scale of the dump.</p>
+                                <p className="text-xs text-slate-600 font-medium leading-normal">Ensure the photo clearly shows the scale of the dump.</p>
                             </li>
-                            <li className="flex gap-3">
-                                <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 flex-shrink-0">
-                                    <Zap size={12} />
+                            <li className="flex gap-4">
+                                <div className="w-6 h-6 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 flex-shrink-0">
+                                    <CheckCircle size={14} />
                                 </div>
-                                <p className="text-xs text-slate-700 font-medium">Drop the pin exactly where the waste is located.</p>
+                                <p className="text-xs text-slate-600 font-medium leading-normal">Drop the pin exactly where the waste is located.</p>
                             </li>
-                            <li className="flex gap-3">
-                                <div className="w-5 h-5 bg-emerald-100 rounded-full flex items-center justify-center text-emerald-600 flex-shrink-0">
-                                    <Zap size={12} />
+                            <li className="flex gap-4">
+                                <div className="w-6 h-6 bg-emerald-100 rounded-lg flex items-center justify-center text-emerald-600 flex-shrink-0">
+                                    <CheckCircle size={14} />
                                 </div>
-                                <p className="text-xs text-slate-700 font-medium">Categorize waste types accurately for specialized disposal.</p>
+                                <p className="text-xs text-slate-600 font-medium leading-normal">Categorize waste types accurately for specialized disposal.</p>
                             </li>
                         </ul>
                     </div>
@@ -556,16 +566,35 @@ function ReportForm() {
     );
 }
 
-function EscalationStep({ phase, title, desc, color, active }: any) {
+function EscalationStep({ phase, title, desc, icon, color, active, isLast }: any) {
     return (
-        <div className={`flex gap-4 ${!active ? 'opacity-30' : ''}`}>
+        <div className={`relative flex gap-5 transition-all duration-500 ${active ? 'scale-[1.02]' : 'opacity-60'}`}>
             <div className="flex flex-col items-center">
-                <div className={`w-3 h-3 rounded-full ${color} ${active ? 'ring-4 ring-emerald-500/20 shadow-[0_0_15px_rgba(16,185,129,0.5)]' : ''}`} />
-                <div className="w-0.5 flex-1 bg-white/10 my-2" />
+                <div className={`z-10 w-10 h-10 rounded-2xl flex items-center justify-center transition-all duration-500 shadow-lg
+                    ${active ? `${color} text-white ring-4 ring-emerald-500/10` : 'bg-slate-100 text-slate-400 border border-slate-200'}`}>
+                    {icon}
+                </div>
+                {!isLast && (
+                    <div className={`w-0.5 mt-1 flex-1 transition-all duration-500
+                        ${active ? 'bg-gradient-to-b from-emerald-500 to-slate-200' : 'bg-slate-200'}`} 
+                        style={{ minHeight: '40px' }}
+                    />
+                )}
             </div>
-            <div>
-                <h4 className="text-[10px] font-black text-white uppercase tracking-widest mb-1">PHASE {phase}: {title}</h4>
-                <p className="text-xs text-slate-300 leading-relaxed">{desc}</p>
+            <div className="py-1">
+                <div className="flex items-center gap-2 mb-1.5">
+                    <span className={`text-[9px] font-black px-1.5 py-0.5 rounded border 
+                        ${active ? 'border-emerald-500/50 text-emerald-600 bg-emerald-50' : 'border-slate-200 text-slate-400 bg-slate-50'}`}>
+                        PHASE {phase}
+                    </span>
+                    <h4 className={`text-xs font-black uppercase tracking-widest ${active ? 'text-slate-900' : 'text-slate-600'}`}>
+                        {title}
+                    </h4>
+                </div>
+                <p className={`text-xs leading-relaxed font-black transition-colors duration-500
+                    ${active ? 'text-slate-900' : 'text-slate-600'}`}>
+                    {desc}
+                </p>
             </div>
         </div>
     );

@@ -102,7 +102,7 @@ model Pledge {
 model CleanupProof {
   id           String   @id @default(auto()) @map("_id") @db.ObjectId
   beforeImage  String   // URL of the original mess
-  afterImage   String   // URL of the cleaned site
+  afterImage   String?   // URL of the cleaned site
   description  String?
   upvotes      Int      @default(0)
   

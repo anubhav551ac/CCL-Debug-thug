@@ -22,9 +22,23 @@ export interface Pin {
         email: string;
         profilePic?: string;
     };
+    cleanupProof?: {
+        id: string;
+        cleanerId: string;
+        afterImage: string | null;
+        beforeImage: string;
+        description?: string;
+        upvotes: number;
+        createdAt: string;
+        cleaner: {
+            id: string;
+            name: string;
+            profilePic?: string;
+        };
+    } | null;
 }
 
-interface PinsState {
+export interface PinsState {
     pins: Pin[];
     selectedPinId: string | null;
 }

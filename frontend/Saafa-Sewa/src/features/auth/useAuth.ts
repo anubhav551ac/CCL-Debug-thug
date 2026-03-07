@@ -137,9 +137,10 @@ export const useCurrentUser = () => {
         queryFn: async () => {
             dispatch(startLoading());
             try {
-                const user = await apiRequest<AuthUser>("/api/v1/auth/me", {
+                const response = await apiRequest<AuthResponse>("/api/v1/auth/me", {
                     method: "GET",
                 });
+                const user = response.user;
                 // Sync TanStack Query result with Redux
                 dispatch(setUser({
                     ...user,
@@ -160,7 +161,10 @@ export const useCurrentUser = () => {
             }
         },
         staleTime: 1000 * 60 * 5, // 5 minutes
+        gcTime: 1000 * 60 * 10, // Keep in garbage collection for 10 minutes
         retry: 1,
+        // Force fresh fetch on first mount (when user is not in Redux)
+        enabled: true,
     });
 };
 

@@ -2,6 +2,21 @@ import prisma from "../utils/prisma.js";
 import type { CreatePinInput, PledgeInput } from "../validators/pinValidators.js";
 
 export const getPins = async () => {
+    // Logic to update PinStatus from PENDING_GOV to BOUNTY_OPEN after 7 days
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+
+    // Update pins that have aged past 7 days
+    await prisma.wastePin.updateMany({
+        where: {
+            status: 'PENDING_GOV',
+            createdAt: { lt: sevenDaysAgo }
+        },
+        data: {
+            status: 'BOUNTY_OPEN'
+        }
+    });
+
     return await prisma.wastePin.findMany({
         include: {
             reporter: {
@@ -10,6 +25,24 @@ export const getPins = async () => {
                     name: true,
                     email: true,
                     profilePic: true,
+                },
+            },
+            cleanupProof: {
+                select: {
+                    id: true,
+                    cleanerId: true,
+                    afterImage: true,
+                    beforeImage: true,
+                    description: true,
+                    upvotes: true,
+                    createdAt: true,
+                    cleaner: {
+                        select: {
+                            id: true,
+                            name: true,
+                            profilePic: true,
+                        },
+                    },
                 },
             },
         },
@@ -77,15 +110,74 @@ export const createPledge = async (userId: string, pinId: string, data: PledgeIn
 };
 
 export const upvotePin = async (pinId: string) => {
-    return await prisma.wastePin.update({
+    const existing = await prisma.wastePin.findUnique({ where: { id: pinId } });
+    if (!existing) {
+        throw Object.assign(new Error("Pin not found"), { statusCode: 404 });
+    }
+    
+    console.log(`[DEBUG] Upvoting pin ${pinId}. Current upvotes: ${existing.upvotes}`);
+    
+    const updated = await prisma.wastePin.update({
         where: { id: pinId },
         data: { upvotes: { increment: 1 } },
     });
+    
+    console.log(`[DEBUG] Pin ${pinId} upvoted. New upvotes: ${updated.upvotes}`);
+    return updated;
 };
 
 export const removeUpvotePin = async (pinId: string) => {
+    const existing = await prisma.wastePin.findUnique({ where: { id: pinId } });
+    if (!existing) {
+        throw Object.assign(new Error("Pin not found"), { statusCode: 404 });
+    }
+
+    // Ensure upvotes don't go below 0
+    const newUpvotes = Math.max((existing.upvotes || 0) - 1, 0);
+    
+    console.log(`[DEBUG] Removing upvote for pin ${pinId}. Current: ${existing.upvotes}, New: ${newUpvotes}`);
+
     return await prisma.wastePin.update({
         where: { id: pinId },
-        data: { upvotes: { decrement: 1 } },
+        data: { upvotes: newUpvotes },
+    });
+};
+
+export const getPledgesForPin = async (pinId: string) => {
+    return await prisma.pledge.findMany({
+        where: { pinId },
+        include: {
+            user: {
+                select: {
+                    id: true,
+                    name: true,
+                    profilePic: true,
+                }
+            }
+        },
+        orderBy: { createdAt: "desc" }
+    });
+};
+
+export const getPinRankings = async () => {
+    const topPins = await prisma.wastePin.findMany({
+        where: {
+            status: { not: 'RESOLVED' }
+        },
+        take: 4,
+        orderBy: { bountyPool: 'desc' }
+    });
+
+    return topPins.map(pin => {
+        const progress = Math.min((pin.bountyPool / 1000) * 100, 100);
+        let priority: 'Low' | 'Medium' | 'High' = 'Low';
+        if (progress >= 70) priority = 'High';
+        else if (progress >= 30) priority = 'Medium';
+
+        return {
+            ...pin,
+            progress,
+            priority
+        };
     });
 };

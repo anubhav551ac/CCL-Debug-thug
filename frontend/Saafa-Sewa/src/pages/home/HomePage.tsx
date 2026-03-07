@@ -1,14 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
 import {
-  Menu,
-  ChevronLeft,
-  ChevronRight,
   Plus,
-  DollarSign,
-  BarChart2,
-  Layers,
-  MoreVertical,
   Building2,
   Users,
   AlertCircle,
@@ -19,15 +12,10 @@ import {
   Mail,
   User,
   MessageSquare,
-  Lock,
-  Phone,
-  MapPin,
-  ArrowRight,
-  Camera,
-  UserPlus
 } from 'lucide-react';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { useNavigate } from 'react-router-dom';
+import Logo from '../../components/Logo';
 
 export const NavItem = ({ children, href = "#", onClick }: { children: React.ReactNode; href?: string; onClick?: () => void }) => (
   <a
@@ -143,9 +131,7 @@ export function HomePage() {
       <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 px-6 h-20 flex items-center ${scrolled ? 'bg-white/90 backdrop-blur-md border-b border-slate-100 shadow-sm' : 'bg-transparent'}`}>
         <div className="max-w-7xl mx-auto w-full flex items-center justify-between">
           <div className="flex items-center gap-2 group cursor-pointer" onClick={() => navigate('/')}>
-            <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center text-white shadow-lg shadow-primary/20 group-hover:scale-110 transition-transform">
-              <Leaf size={20} fill="currentColor" />
-            </div>
+            <Logo size={44} className="group-hover:scale-110 transition-transform drop-shadow-md" />
             <span className="text-xl font-bold tracking-tight text-slate-900">Saafa Sewa</span>
           </div>
 
@@ -389,7 +375,7 @@ export function HomePage() {
             </div>
 
             <div className="p-12 lg:p-20">
-              <form onSubmit={() => navigate('/')} className="space-y-6">
+              <form onSubmit={handleSubmit} className="space-y-6">
 
                 <div className="space-y-2">
                   <label className="text-[10px] font-black uppercase tracking-widest text-gray-400 ml-1">Your Name</label>

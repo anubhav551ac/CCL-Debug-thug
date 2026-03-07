@@ -1,244 +1,231 @@
+import { useState, useEffect } from 'react';
+import { motion, AnimatePresence } from 'motion/react';
+import { Trophy } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '@/store'; // Adjusted for alias if needed
 
-import { TrendingUp, Star, Clock, Trophy, ChevronRight, User } from 'lucide-react';
+// ─── Animation Variants ────────────────────────────────────────────────────────
+const containerVariants = {
+    hidden: { opacity: 0 },
+    visible: {
+        opacity: 1,
+        transition: {
+            staggerChildren: 0.1,
+            delayChildren: 0.1,
+            duration: 0.5,
+        },
+    },
+};
 
-function ImpactStats() {
+const rowVariants = {
+    hidden: { opacity: 0, x: -20 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.4, ease: 'easeOut' } },
+};
+
+// ─── Mock Data ─────────────────────────────────────────────────────────────────
+const MOCK_LEADERS = [
+    { id: 'm1', name: 'Sunita Shrestha', area: 'Maharajgunj', activePins: 4, rate: 94, points: 8400, role: 'CIVIC HERO' },
+    { id: 'm2', name: 'Rohan K.C.', area: 'Baneshwor', activePins: 2, rate: 88, points: 7600, role: 'CIVIC HERO' },
+    { id: 'm3', name: 'Maya Gurung', area: 'Naxal', activePins: 1, rate: 82, points: 5800, role: 'CITIZEN' },
+    { id: 'm4', name: 'Nabil Bank', area: 'Corporate Sponsor', activePins: 0, rate: 100, points: 25000, role: 'PARTNER' },
+    { id: 'm5', name: 'Kushal S.', area: 'Thamel', activePins: 5, rate: 76, points: 4200, role: 'CITIZEN' },
+];
+
+export default function ImpactStatsPage() {
+    const currentUser = useSelector((state: RootState) => state.user.user);
+    const [isLoading, setIsLoading] = useState(true);
+    const [leaderboard, setLeaderboard] = useState<any[]>([]);
+
+    useEffect(() => {
+        // Simulate a 1-second hydration period
+        const timer = setTimeout(() => {
+            const combined = [...MOCK_LEADERS];
+            
+            // Reconcile current user into leaderboard
+            if (currentUser) {
+                const userEntry = {
+                    id: currentUser.id || 'u1',
+                    name: currentUser.name || 'Current User',
+                    area: currentUser.municipality || 'Kathmandu Sector',
+                    activePins: currentUser.totalReports || 0,
+                    rate: 100, // Simplification
+                    points: currentUser.reputation || 0,
+                    role: currentUser.role || 'CITIZEN',
+                    isCurrentUser: true,
+                };
+                
+                // Add user if they have points and aren't mock-mirrored, otherwise just insert.
+                // In a real app we'd merge cleanly.
+                combined.push(userEntry);
+            }
+
+            // Sort by points descending
+            combined.sort((a, b) => b.points - a.points);
+            
+            setLeaderboard(combined);
+            setIsLoading(false);
+        }, 1000);
+
+        return () => clearTimeout(timer);
+    }, [currentUser]);
+
     return (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 h-full">
-            {/* Left Column - Stats & Leaderboard */}
-            <div className="lg:col-span-8 space-y-6">
-                <div className="glass-panel rounded-[2.5rem] p-10 border border-slate-100">
-                    <div className="flex items-center gap-2 mb-4">
-                        <div className="w-8 h-1 bg-primary rounded-full" />
-                        <div className="w-8 h-1 bg-slate-100 rounded-full" />
-                        <div className="w-8 h-1 bg-slate-100 rounded-full" />
-                    </div>
-                    <h2 className="text-4xl font-black text-slate-900 mb-2">Municipality Impact Overview</h2>
-                    <p className="text-slate-400 font-medium mb-10">Real-time civic accountability and waste management metrics across Kathmandu.</p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <StatCard
-                            label="TOTAL DUMPS RESOLVED"
-                            value="12,482"
-                            trend="+18% this month"
-                            trendUp={true}
-                        />
-                        <StatCard
-                            label="TOTAL BOUNTIES PAID"
-                            value="रू 84.2K"
-                            subValue="Civic Fund Contribution"
-                            icon={<Star size={14} className="text-primary fill-primary" />}
-                        />
-                        <StatCard
-                            label="AVG. RESPONSE TIME"
-                            value="14.2h"
-                            subValue="Optimized cycle"
-                            icon={<Clock size={14} className="text-blue-500" />}
-                        />
-                    </div>
-
-                    <div className="mt-16">
-                        <div className="flex items-center justify-between mb-8">
-                            <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1">MUNICIPALITY PERFORMANCE</p>
-                                <h3 className="text-2xl font-black text-slate-900">Kathmandu Area Leaderboard</h3>
-                            </div>
-                            <button className="text-[10px] font-black text-primary uppercase tracking-widest hover:underline">View All Wards</button>
-                        </div>
-
-                        <div className="overflow-x-auto">
-                            <table className="w-full">
-                                <thead>
-                                    <tr className="text-left border-b border-slate-50">
-                                        <th className="pb-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Municipality/Area</th>
-                                        <th className="pb-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Active Red Pins</th>
-                                        <th className="pb-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Response Rate %</th>
-                                        <th className="pb-6 text-[10px] font-black text-slate-300 uppercase tracking-widest">Impact Points</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-50">
-                                    <WardRow ward="Maharajgunj" name="Maharajgunj, Kathmandu" pins="12 Reports" rate={94} points="42,800" color="text-primary" />
-                                    <WardRow ward="Baneshwor" name="Baneshwor, Kathmandu" pins="08 Reports" rate={88} points="38,120" color="text-primary" />
-                                    <WardRow ward="Naxal" name="Naxal, Kathmandu" pins="24 Reports" rate={62} points="21,450" color="text-amber-500" />
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
+        <div className="h-full pb-8">
+            {/* The Elite Leaderboard Container */}
+            <div 
+                className="glass-panel rounded-[2.5rem] p-8 md:p-10 border relative overflow-hidden h-full flex flex-col"
+                style={{ borderColor: 'rgba(16,185,129,0.15)', boxShadow: '0 0 40px rgba(16,185,129,0.05)' }}
+            >
+                {/* Header elements */}
+                <div className="flex items-center gap-2 mb-6">
+                    <div className="w-8 h-1 bg-emerald-500 rounded-full" />
+                    <div className="w-8 h-1 bg-slate-200 rounded-full" />
                 </div>
-            </div>
-
-            {/* Right Column - Heroes & Pledgers */}
-            <div className="lg:col-span-4 space-y-6">
-                {/* Community Heroes Widget */}
-                <div className="glass-panel rounded-[2.5rem] p-8 border border-slate-100 shadow-xl">
-                    <div className="flex justify-between items-start mb-8">
-                        <div>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-1">IMPACT LEADERS</p>
-                            <h3 className="text-2xl font-black text-slate-900">Community Heroes</h3>
-                        </div>
-                        <Trophy size={24} className="text-primary" />
+                
+                <div className="flex justify-between items-end mb-10">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-emerald-600 mb-2 flex items-center gap-2">
+                            <Trophy size={14} /> THE ELITE LEADERBOARD
+                        </p>
+                        <h2 className="text-3xl md:text-4xl font-black text-slate-900 leading-tight">Civic Command <br/>Rankings</h2>
                     </div>
-
-                    <div className="space-y-6">
-                        <HeroItem
-                            rank={1}
-                            name="Sunita Shrestha"
-                            stat="42 Bounties Cleared"
-                            amount="रू 8,400"
-                            avatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Sunita"
-                        />
-                        <HeroItem
-                            rank={2}
-                            name="Rohan K.C."
-                            stat="38 Bounties Cleared"
-                            amount="रू 7,600"
-                            avatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Rohan"
-                        />
-                        <HeroItem
-                            rank={3}
-                            name="Maya Gurung"
-                            stat="29 Bounties Cleared"
-                            amount="रू 5,800"
-                            avatar="https://api.dicebear.com/7.x/avataaars/svg?seed=Maya"
-                        />
-                    </div>
-
-                    <button className="w-full mt-10 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-900 py-4 rounded-2xl text-[10px] font-black uppercase tracking-widest transition-all">
-                        View All Gig-Workers
+                    {/* Action button representing some global action */}
+                    <button className="hidden sm:flex items-center gap-2 px-5 py-2.5 bg-slate-900 text-white rounded-full text-xs font-bold hover:bg-emerald-600 transition-colors">
+                        Deploy Resources
                     </button>
                 </div>
 
-                {/* Top Pledgers Widget */}
-                <div className="glass-panel rounded-[2.5rem] p-8 border border-slate-100">
-                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-8">TOP PLEDGERS (MAHARAJGUNJ)</h3>
-
-                    <div className="space-y-6">
-                        <PledgerItem name="Nabil Bank" amount="रू 25,000" icon={<BankIcon />} />
-                        <PledgerItem name="CG Group" amount="रू 18,500" icon={<BusinessIcon />} />
-                        <PledgerItem name="Kushal S." amount="रू 12,000" icon={<User size={18} className="text-slate-400" />} />
-                    </div>
-
-                    <p className="mt-10 text-[10px] text-slate-400 font-medium leading-relaxed">
-                        Pledgers contribute to the bounty pool that incentivizes quick waste clearance by our hero network.
-                    </p>
+                <div className="flex-1 overflow-x-auto w-full custom-scrollbar">
+                    <table className="w-full min-w-[800px] border-collapse">
+                        <thead>
+                            <tr className="border-b border-slate-200">
+                                <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest pl-6">Rank & Citizen</th>
+                                <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Active Pins</th>
+                                <th className="pb-4 text-left text-[10px] font-black text-slate-400 uppercase tracking-widest">Response Rate</th>
+                                <th className="pb-4 text-right text-[10px] font-black text-slate-400 uppercase tracking-widest pr-6">Impact Points</th>
+                            </tr>
+                        </thead>
+                        <AnimatePresence mode="wait">
+                            {isLoading ? (
+                                <motion.tbody 
+                                    key="skeleton"
+                                    initial={{ opacity: 0 }}
+                                    animate={{ opacity: 1 }}
+                                    exit={{ opacity: 0, transition: { duration: 0.2 } }}
+                                >
+                                    {[1, 2, 3, 4, 5].map((i) => (
+                                        <SkeletonRow key={i} />
+                                    ))}
+                                </motion.tbody>
+                            ) : (
+                                <motion.tbody 
+                                    key="content"
+                                    variants={containerVariants}
+                                    initial="hidden"
+                                    animate="visible"
+                                    className="divide-y divide-transparent"
+                                >
+                                    {leaderboard.map((entry, idx) => (
+                                        <LeaderboardRow key={entry.id} rank={idx + 1} data={entry} />
+                                    ))}
+                                </motion.tbody>
+                            )}
+                        </AnimatePresence>
+                    </table>
                 </div>
             </div>
         </div>
     );
 }
 
-function StatCard({ label, value, trend, subValue, trendUp, icon }: any) {
-    return (
-        <div className="bg-slate-50 rounded-[2rem] p-8 border border-slate-100">
-            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">{label}</h4>
-            <div className="flex items-baseline gap-2 mb-3">
-                <span className="text-4xl font-black text-slate-900 tracking-tight">{value}</span>
-            </div>
-            <div className="flex items-center gap-2">
-                {trend && (
-                    <div className="flex items-center gap-1">
-                        <TrendingUp size={12} className={trendUp ? 'text-primary' : 'text-rose-500'} />
-                        <span className={`text-[10px] font-bold ${trendUp ? 'text-primary' : 'text-rose-500'}`}>{trend}</span>
-                    </div>
-                )}
-                {subValue && (
-                    <div className="flex items-center gap-1.5">
-                        {icon}
-                        <span className="text-[10px] font-bold text-slate-500">{subValue}</span>
-                    </div>
-                )}
-            </div>
-        </div>
-    );
-}
+// ─── Sub-components ────────────────────────────────────────────────────────────
 
-function WardRow({ ward, name, pins, rate, points, color }: any) {
+function SkeletonRow() {
     return (
-        <tr className="group hover:bg-slate-50 transition-colors">
-            <td className="py-6">
-                <div className="flex items-center gap-4">
-                    <div className="w-10 h-10 bg-primary/10 rounded-xl flex items-center justify-center text-primary font-black text-sm">
-                        {ward}
+        <tr className="border-b-[12px] border-transparent">
+            {/* Using a subtle light background with modern shimmer for skeleton */}
+            <td colSpan={4} className="bg-white rounded-2xl h-20 px-6 relative overflow-hidden border border-slate-100 shadow-sm">
+                <div className="absolute inset-0 -translate-x-full animate-[shimmer_1.5s_infinite] bg-gradient-to-r from-transparent via-slate-200/50 to-transparent" />
+                <div className="flex items-center justify-between w-full opacity-40">
+                    <div className="flex items-center gap-4 w-1/3">
+                        <div className="w-10 h-10 rounded-full bg-slate-200" />
+                        <div className="space-y-2 flex-1">
+                            <div className="h-4 bg-slate-200 rounded w-2/3" />
+                            <div className="h-3 bg-slate-200 rounded w-1/3" />
+                        </div>
                     </div>
-                    <span className="text-sm font-bold text-slate-900">{name}</span>
+                    <div className="h-4 bg-slate-200 rounded w-16" />
+                    <div className="h-4 bg-slate-200 rounded w-24" />
+                    <div className="h-6 bg-slate-200 rounded w-20" />
                 </div>
-            </td>
-            <td className="py-6">
-                <div className="flex items-center gap-2">
-                    <div className={`w-2 h-2 rounded-full bg-rose-500`} />
-                    <span className="text-sm font-bold text-slate-900">{pins}</span>
-                </div>
-            </td>
-            <td className="py-6">
-                <div className="flex items-center gap-4">
-                    <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden max-w-[100px]">
-                        <div className={`h-full ${rate > 80 ? 'bg-primary' : 'bg-amber-500'}`} style={{ width: `${rate}%` }} />
-                    </div>
-                    <span className="text-xs font-black text-slate-900">{rate}%</span>
-                </div>
-            </td>
-            <td className="py-6 text-right">
-                <span className="text-sm font-black text-slate-900">{points}</span>
             </td>
         </tr>
     );
 }
 
-function HeroItem({ rank, name, stat, amount, avatar }: any) {
+function LeaderboardRow({ rank, data }: { rank: number; data: any }) {
+    const isTop3 = rank <= 3;
+    const rankColor = rank === 1 ? 'text-amber-600' : rank === 2 ? 'text-slate-500' : rank === 3 ? 'text-amber-700' : 'text-slate-500';
+
     return (
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-                <div className="relative">
-                    <div className="w-12 h-12 rounded-full bg-slate-100 overflow-hidden border-2 border-slate-200">
-                        <img src={avatar} alt={name} className="w-full h-full object-cover" />
+        <motion.tr 
+            variants={rowVariants}
+            className={`group bg-white border-b-[12px] border-transparent hover:bg-slate-50 transition-colors rounded-2xl ${
+                data.isCurrentUser ? 'ring-2 ring-emerald-500 ring-inset' : ''
+            }`}
+        >
+            <td className="py-5 pl-6 rounded-l-2xl">
+                <div className="flex items-center gap-4">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center font-black ${
+                        isTop3 ? 'bg-slate-100 border border-slate-200 shadow-inner' : 'bg-transparent text-slate-500'
+                    }`}>
+                        <span className={isTop3 ? rankColor : ''}>#{rank}</span>
                     </div>
-                    <div className="absolute -top-1 -right-1 w-5 h-5 bg-amber-400 rounded-full flex items-center justify-center text-[10px] font-black text-white border-2 border-white">
-                        {rank}
+                    <div className="w-10 h-10 rounded-full bg-slate-100 overflow-hidden flex items-center justify-center border border-slate-200">
+                        {data.role === 'PARTNER' ? (
+                            <Trophy size={18} className="text-emerald-600" />
+                        ) : (
+                            <img 
+                                src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${data.name}`} 
+                                alt={data.name} 
+                                className="w-full h-full object-cover" 
+                            />
+                        )}
+                    </div>
+                    <div>
+                        <div className="flex items-center gap-2">
+                            <span className="text-sm font-bold text-slate-900 tracking-wide">{data.name}</span>
+                            {data.isCurrentUser && (
+                                <span className="bg-emerald-500/20 text-emerald-600 text-[8px] px-1.5 py-0.5 rounded uppercase font-black tracking-widest">You</span>
+                            )}
+                        </div>
+                        <span className="text-[10px] font-medium text-slate-500">{data.area} · <span className="text-emerald-600">{data.role}</span></span>
                     </div>
                 </div>
-                <div>
-                    <h4 className="text-sm font-bold text-slate-900">{name}</h4>
-                    <p className="text-[10px] text-slate-400 uppercase tracking-widest font-bold">{stat}</p>
+            </td>
+            
+            <td className="py-5">
+                <div className="flex items-center gap-2">
+                    <div className={`w-2 h-2 rounded-full ${data.activePins > 0 ? 'bg-rose-500 animate-pulse' : 'bg-slate-400'}`} />
+                    <span className="text-sm font-bold text-slate-700">{data.activePins}</span>
                 </div>
-            </div>
-            <span className="text-sm font-black text-slate-900">{amount}</span>
-        </div>
-    );
-}
-
-function PledgerItem({ name, amount, icon }: any) {
-    return (
-        <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-                <div className="w-10 h-10 bg-slate-50 rounded-xl flex items-center justify-center text-slate-400">
-                    {icon}
+            </td>
+            
+            <td className="py-5">
+                <div className="flex items-center gap-3">
+                    <div className="flex-1 h-1.5 bg-slate-200 rounded-full overflow-hidden w-24">
+                        <div className="h-full bg-emerald-500" style={{ width: `${data.rate}%` }} />
+                    </div>
+                    <span className="text-xs font-black text-slate-700">{data.rate}%</span>
                 </div>
-                <span className="text-sm font-bold text-slate-900">{name}</span>
-            </div>
-            <span className="text-sm font-black text-slate-900">{amount}</span>
-        </div>
+            </td>
+            
+            <td className="py-5 pr-6 rounded-r-2xl text-right">
+                <div className="flex items-baseline justify-end gap-1">
+                    <span className="text-xl font-black text-emerald-600 tracking-tighter">{data.points.toLocaleString()}</span>
+                    <span className="text-[9px] font-bold text-slate-500 uppercase">pts</span>
+                </div>
+            </td>
+        </motion.tr>
     );
 }
-
-function BankIcon() {
-    return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-blue-500">
-            <rect x="2" y="10" width="20" height="12" rx="2" />
-            <path d="M12 22V10" />
-            <path d="M18 22V10" />
-            <path d="M6 22V10" />
-            <path d="m2 10 10-8 10 8" />
-        </svg>
-    );
-}
-
-function BusinessIcon() {
-    return (
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="text-purple-500">
-            <rect x="3" y="3" width="18" height="18" rx="2" />
-            <path d="M3 9h18" />
-            <path d="M9 21V9" />
-        </svg>
-    );
-}
-
-export default ImpactStats;

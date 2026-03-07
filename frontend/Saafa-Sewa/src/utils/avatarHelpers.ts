@@ -1,13 +1,15 @@
 /**
  * Generate initials from a name
- * @param name - Full name of the person
+ * @param name - Full name of the person (can be undefined)
  * @returns Two-letter initials
  */
-export const getInitials = (name: string): string => {
-    const parts = name?.trim().split(/\s+/);
+export const getInitials = (name?: string | null): string => {
+    const safe = (name ?? "").trim();
+    if (!safe) return "??";
+    const parts = safe.split(/\s+/);
     if (parts.length === 0) return "??";
-    if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
-    return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+    if (parts.length === 1) return parts[0]!.substring(0, 2).toUpperCase();
+    return (parts[0]![0] + parts[parts.length - 1]![0]).toUpperCase();
 };
 
 /**
@@ -47,16 +49,16 @@ export const getAvatarColor = (seed: string): string => {
  * @returns Object with either imageUrl or initials + bgColor
  */
 export const generateAvatarContent = (
-    name: string,
+    name?: string | null,
     profilePic?: string | null
 ): { type: "image" | "initials"; imageUrl?: string; initials?: string; bgColor?: string } => {
     if (profilePic) {
         return { type: "image", imageUrl: profilePic };
     }
-    console.log(name);
+    const fallbackName = (name && name.trim()) || "User";
     return {
         type: "initials",
-        initials: getInitials(name),
-        bgColor: getAvatarColor(name),
+        initials: getInitials(fallbackName),
+        bgColor: getAvatarColor(fallbackName),
     };
 };

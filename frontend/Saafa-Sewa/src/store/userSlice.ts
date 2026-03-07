@@ -26,9 +26,24 @@ export interface UserState {
     error: string | null;
 }
 
+// Helper function to safely load user from localStorage
+const loadUserFromStorage = (): User | null => {
+    try {
+        const storedUser = localStorage.getItem('user');
+        if (storedUser) {
+            const parsed = JSON.parse(storedUser);
+            // Handle potentially corrupted/nested data in localStorage
+            return (parsed.user ? parsed.user : parsed) as User;
+        }
+    } catch (error) {
+        console.error('Failed to parse user from localStorage:', error);
+    }
+    return null;
+};
+
 const initialState: UserState = {
-    user: null,
-    isLoading: false,
+    user: loadUserFromStorage(), // Restore user from localStorage on app init for instant hydration
+    isLoading: loadUserFromStorage() ? false : true, // Only show loading if user wasn't restored from storage
     error: null,
 };
 
@@ -38,7 +53,9 @@ export const userSlice = createSlice({
     reducers: {
         // Set the user data and automatically set isLoading to false
         setUser: (state, action: PayloadAction<User>) => {
-            state.user = action.payload;
+            // Robustness check: if payload itself contains a 'user' property (due to API structure confusion)
+            const userData = (action.payload as any).user ? (action.payload as any).user : action.payload;
+            state.user = userData;
             state.isLoading = false;
             state.error = null;
         },

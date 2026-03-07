@@ -8,3 +8,4 @@ router.post("/:proofId/upvote", upvoteCleanupProof);
 
 export default router;
 
+

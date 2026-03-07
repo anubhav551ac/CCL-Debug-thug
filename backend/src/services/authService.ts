@@ -28,14 +28,52 @@ export const registerUser = async (data: {
       role: data.role ?? "CITIZEN",
       profilePic: data.profilePic,
     },
-    select: { id: true, email: true, name: true, role: true },
+    select: {
+      id: true,
+      email: true,
+      name: true,
+      phoneNumber: true,
+      profilePic: true,
+      role: true,
+      reputation: true,
+      mockBalance: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: {
+        select: {
+          reportsCreated: true,
+          cleanupsDone: true,
+        },
+      },
+    },
   });
 
-  return { user, token: signToken(user) };
+  return { user, token: signToken({ id: user.id, email: user.email, name: user.name, role: user.role }) };
 };
 
 export const loginUser = async (email: string, password: string) => {
-  const user = await prisma.user.findUnique({ where: { email } });
+  const user = await prisma.user.findUnique({
+    where: { email },
+    select: {
+      id: true,
+      email: true,
+      password: true,
+      name: true,
+      phoneNumber: true,
+      profilePic: true,
+      role: true,
+      reputation: true,
+      mockBalance: true,
+      createdAt: true,
+      updatedAt: true,
+      _count: {
+        select: {
+          reportsCreated: true,
+          cleanupsDone: true,
+        },
+      },
+    },
+  });
   if (!user) {
     throw Object.assign(new Error("Invalid email or password"), { statusCode: 401 });
   }
@@ -45,6 +83,6 @@ export const loginUser = async (email: string, password: string) => {
     throw Object.assign(new Error("Invalid email or password"), { statusCode: 401 });
   }
 
-  const { id, name, role } = user;
-  return { user: { id, email: user.email, name, role }, token: signToken({ id, email: user.email, name, role }) };
+  const { password: _, ...userWithoutPassword } = user;
+  return { user: userWithoutPassword, token: signToken({ id: user.id, email: user.email, name: user.name, role: user.role }) };
 };

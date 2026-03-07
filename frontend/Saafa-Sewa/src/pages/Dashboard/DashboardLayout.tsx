@@ -2,13 +2,10 @@ import { Outlet, useLocation } from "react-router-dom"
 import DashboardNavbar from "./DashboardNavbar"
 import DashboardHeader from "@/components/DashboardHeader"
 import { AnimatePresence, motion } from "motion/react"
-import { useFetchUserData } from "@/hooks/useFetchUserData"
 
 
 function DashboardLayout() {
     const location = useLocation();
-    useFetchUserData(); // Fetch user data when dashboard loads
-
 
     return (
         <div className="flex h-screen bg-background overflow-hidden">

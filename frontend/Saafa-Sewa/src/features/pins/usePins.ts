@@ -24,6 +24,20 @@ export interface Pin {
         email: string;
         profilePic?: string;
     };
+    cleanupProof?: {
+        id: string;
+        cleanerId: string;
+        afterImage: string | null;
+        beforeImage: string;
+        description?: string;
+        upvotes: number;
+        createdAt: string;
+        cleaner: {
+            id: string;
+            name: string;
+            profilePic?: string;
+        };
+    } | null;
 }
 
 interface CreatePinPayload {
@@ -81,6 +95,7 @@ export const useFetchPins = () => {
         queryKey: ["pins"],
         queryFn: () => apiRequest<Pin[]>("/api/v1/pins", { method: "GET" }),
         staleTime: 1000 * 60 * 2, // Consider data fresh for 2 minutes
+        refetchInterval: 15000, // Short polling every 10 seconds for real-time feel
     });
 };
 
@@ -92,9 +107,15 @@ export const useUpvotePin = () => {
             apiRequest<Pin>(`/api/v1/pins/${pinId}/upvote`, {
                 method: "POST",
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["pins"] });
-            console.log("✅ Pin upvoted successfully");
+        onSuccess: (updatedPin: Pin) => {
+            // Update the pins list in the cache without refetching
+            queryClient.setQueryData<Pin[]>(["pins"], (oldPins) => {
+                if (!oldPins) return [];
+                return oldPins.map((pin) =>
+                    pin.id === updatedPin.id ? { ...pin, upvotes: updatedPin.upvotes } : pin
+                );
+            });
+            console.log("✅ Pin upvoted successfully", updatedPin);
         },
         onError: (err: Error) => {
             console.error("❌ Failed to upvote pin", err.message);
@@ -110,12 +131,63 @@ export const useRemoveUpvotePin = () => {
             apiRequest<Pin>(`/api/v1/pins/${pinId}/upvote`, {
                 method: "DELETE",
             }),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ["pins"] });
-            console.log("✅ Pin upvote removed successfully");
+        onSuccess: (updatedPin: Pin) => {
+            // Update the pins list in the cache without refetching
+            queryClient.setQueryData<Pin[]>(["pins"], (oldPins) => {
+                if (!oldPins) return [];
+                return oldPins.map((pin) =>
+                    pin.id === updatedPin.id ? { ...pin, upvotes: updatedPin.upvotes } : pin
+                );
+            });
+            console.log("✅ Pin upvote removed successfully", updatedPin);
         },
         onError: (err: Error) => {
             console.error("❌ Failed to remove upvote", err.message);
         },
+    });
+};
+
+export const usePledgePin = () => {
+    const queryClient = useQueryClient();
+
+    return useMutation({
+        mutationFn: (payload: { pinId: string; amount: number }) =>
+            apiRequest<{ id: string; amount: number; userId: string; pinId: string; createdAt: string }>(
+                `/api/v1/pins/${payload.pinId}/pledge`,
+                {
+                    method: "POST",
+                    body: JSON.stringify({ amount: payload.amount }),
+                },
+            ),
+        onSuccess: () => {
+            queryClient.invalidateQueries({ queryKey: ["pins"] });
+            queryClient.invalidateQueries({ queryKey: ["currentUser"] });
+            console.log("✅ Pledge created successfully");
+        },
+        onError: (err: Error) => {
+            console.error("❌ Failed to create pledge", err.message);
+        },
+    });
+};
+
+export interface PledgeResponse {
+    id: string;
+    amount: number;
+    userId: string;
+    pinId: string;
+    createdAt: string;
+    user: {
+        id: string;
+        name: string;
+        profilePic?: string;
+    };
+}
+
+export const usePledgesForPin = (pinId: string) => {
+    return useQuery<PledgeResponse[]>({
+        queryKey: ["pledges", pinId],
+        queryFn: () => apiRequest<PledgeResponse[]>(`/api/v1/pins/${pinId}/pledges`, { method: "GET" }),
+        enabled: !!pinId,
+        refetchInterval: 10000, // Short polling for real-time pledges
     });
 };

@@ -68,3 +68,22 @@ export const removeUpvotePin = async (req: Request, res: Response, next: NextFun
         next(error);
     }
 };
+
+export const getPledges = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const pinId = req.params.id as string;
+        const pledges = await pinService.getPledgesForPin(pinId);
+        res.status(200).json({ success: true, data: pledges });
+    } catch (error) {
+        next(error);
+    }
+};
+
+export const getPinRankings = async (req: Request, res: Response, next: NextFunction) => {
+    try {
+        const rankings = await pinService.getPinRankings();
+        res.status(200).json({ success: true, data: rankings });
+    } catch (error) {
+        next(error);
+    }
+};

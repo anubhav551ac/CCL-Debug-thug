@@ -1,14 +1,14 @@
 
 import { useNavigate, useLocation } from "react-router-dom"
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import {
     LayoutDashboard,
     PlusCircle,
     Map as MapIcon,
     BarChart3,
     Settings,
-    HelpCircle,
 } from 'lucide-react';
+import Logo from '../../components/Logo';
 
 function DashboardNavbar() {
 
@@ -22,20 +22,21 @@ function DashboardNavbar() {
                 onClick={() => navigate('/')}
                 className="flex items-center gap-3 mb-12 hover:opacity-80 transition-opacity text-left w-full"
             >
-                <div className="w-10 h-10 bg-primary rounded-xl flex items-center justify-center shadow-lg shadow-primary/20">
-                    <PlusCircle className="text-white" size={24} />
-                </div>
-                <h1 className="text-2xl font-black tracking-tight">Saafa <span className="text-primary">Sewa</span></h1>
+                <Logo size={48} className="drop-shadow-lg" />
+                <h1 className="text-2xl font-black tracking-tight flex flex-col leading-none">
+                    <span>Saafa</span>
+                    <span className="text-primary">Sewa</span>
+                </h1>
             </motion.button>
 
-            <nav className="flex-1 space-y-2">
+            <nav className="flex-1 space-y-2 color-black">
                 <motion.button
                     whileTap={{ scale: 0.98 }}
                     onClick={() => navigate('/app/dashboard')}
                     className={`w-full sidebar-item group ${location.pathname === '/app/dashboard' ? 'sidebar-item-active' : ''}`}
                 >
                     <LayoutDashboard size={20} className="group-hover:scale-110 transition-transform" />
-                    <span className="font-bold">Dashboard</span>
+                    <span className="font-bold color-black">Dashboard</span>
                 </motion.button>
                 <motion.button
                     whileTap={{ scale: 0.98 }}
@@ -67,10 +68,6 @@ function DashboardNavbar() {
                         <Settings size={20} className="group-hover:rotate-45 transition-transform" />
                         <span className="font-bold">Settings</span>
                     </motion.button>
-                    <motion.button whileTap={{ scale: 0.98 }} className="w-full sidebar-item group">
-                        <HelpCircle size={20} className="group-hover:scale-110 transition-transform" />
-                        <span className="font-bold">Support</span>
-                    </motion.button>
                 </div>
             </nav>
 
@@ -80,7 +77,7 @@ function DashboardNavbar() {
                         <div className="w-2 h-2 bg-primary rounded-full animate-pulse" />
                         <span className="text-[10px] uppercase tracking-widest font-black text-primary">Command Active</span>
                     </div>
-                    <p className="text-xs text-slate-500 mb-4 leading-relaxed font-medium">
+                    <p className="text-xs text-slate-900 mb-4 leading-relaxed font-black">
                         Help us keep the city clean. Every report counts towards your Civic Score.
                     </p>
                     <motion.button

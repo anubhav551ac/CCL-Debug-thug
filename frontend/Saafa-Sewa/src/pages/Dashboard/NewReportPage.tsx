@@ -1,4 +1,4 @@
-import { Camera, MapPin, Info, Shield, Share2, Zap, ChevronRight, Upload } from 'lucide-react';
+import { Camera, MapPin,  ChevronRight, Zap } from 'lucide-react';
 
 function NewReportPage() {
 
